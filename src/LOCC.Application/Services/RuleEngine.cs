@@ -57,12 +57,20 @@ namespace LOCC.Application.Services
                     var tasks = GenerateInitialAIIMSTasks(_db.OutbreakEvents.First());
                     result.Tasks.AddRange(tasks);
 
-                    // Create RecoveryBAU record if not exists
+                   // Create RecoveryBAU record if not exists
                     var ob = _db.OutbreakEvents.First();
-                    if (ob.RecoveryBAU == null)
+
+                    var existingRecovery = _db.RecoveryBAUs
+                        .FirstOrDefault(r => r.OutbreakId == ob.OutbreakId);
+
+                    if (existingRecovery == null)
                     {
                         var recovery = CreateInitialRecoveryRecord(ob);
                         result.Recovery = recovery;
+                    }
+                    else
+                    {
+                        result.Recovery = existingRecovery;
                     }
                 }
             }
