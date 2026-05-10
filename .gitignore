@@ -1,0 +1,19 @@
+bin/
+obj/
+**/*.db
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.idea/
+*.vsconfig
+
+# Rider
+.idea/
+
+# Publish
+publish/
+
+# Logs
+*.log
