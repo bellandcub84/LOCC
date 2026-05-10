@@ -26,6 +26,38 @@ namespace LOCC.Infrastructure
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<OutbreakEvent>()
+                .HasKey(o => o.OutbreakId);
+
+            modelBuilder.Entity<RecoveryBAU>()
+                .HasKey(r => r.RecoveryId);
+
+             modelBuilder.Entity<OutbreakEvent>()
+                 .HasOne(o => o.RecoveryBAU)
+                 .WithOne(r => r.OutbreakEvent)
+                 .HasForeignKey<RecoveryBAU>(r => r.OutbreakId);
+                
+            modelBuilder.Entity<Facility>().HasKey(f => f.FacilityId);
+            modelBuilder.Entity<Resident>().HasKey(r => r.ResidentId);
+            modelBuilder.Entity<Staff>().HasKey(s => s.StaffId);
+            modelBuilder.Entity<Location>().HasKey(l => l.LocationId);
+
+            modelBuilder.Entity<OutbreakEvent>().HasKey(o => o.OutbreakId);
+            modelBuilder.Entity<Case>().HasKey(c => c.CaseId);
+
+            modelBuilder.Entity<SymptomRecord>().HasKey(s => s.SymptomId);
+            modelBuilder.Entity<TestRecord>().HasKey(t => t.TestId);
+
+            modelBuilder.Entity<TaskAction>().HasKey(t => t.TaskId);
+            modelBuilder.Entity<Resource>().HasKey(r => r.ResourceId);
+
+            modelBuilder.Entity<Communication>().HasKey(c => c.CommunicationId);
+            modelBuilder.Entity<RecoveryBAU>().HasKey(r => r.RecoveryId);
+
+            modelBuilder.Entity<EvidenceSource>().HasKey(e => e.EvidenceSourceId);
+            modelBuilder.Entity<Alert>().HasKey(a => a.AlertId);
+            modelBuilder.Entity<AuditLog>().HasKey(a => a.AuditLogId);
+
             base.OnModelCreating(modelBuilder);
             // Basic keys & relationships handled by convention.
         }

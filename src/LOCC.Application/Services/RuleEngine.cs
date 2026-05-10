@@ -4,15 +4,16 @@ using System.Collections.Generic;
 using LOCC.Infrastructure;
 using LOCC.Domain.Entities;
 using LOCC.Domain;
+using DomainTaskStatus = LOCC.Domain.TaskStatus;
 
 namespace LOCC.Application.Services
 {
     public class RuleEvaluationResult
-n    {
+   {
         public List<Alert> Alerts { get; set; } = new();
         public List<TaskAction> Tasks { get; set; } = new();
         public RecoveryBAU? Recovery { get; set; }
-    }
+   }
 
     public class RuleEngine
     {
@@ -45,7 +46,6 @@ n    {
             // Example Rule 2: Outbreak declaration support
             foreach (var cluster in clusters)
             {
-                var outbreak = _db.OutbreakEvents.FirstOrDefault(o => o.FacilityId == _db.Facilities.First().FacilityId && o.LikelyExposureZone() == cluster.Key);
                 // Simpler: if cluster exists and any positive test or 3+ symptomatic
                 var anyPositive = _db.TestRecords.Any(t => t.Result == TestResult.Positive && cluster.Select(c => c.CaseId).Contains(t.CaseId));
                 if (anyPositive || cluster.Count() >= 3)
@@ -75,7 +75,7 @@ n    {
                 result.Alerts.Add(alert);
 
                 // Create reorder task
-                var task = new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = res.OutbreakId, AIIMSFunction = AIIMSFunction.Logistics, TaskDescription = $"Reorder {res.ItemName}", Priority = Priority.Critical, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddDays(1) };
+                var task = new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = res.OutbreakId, AIIMSFunction = AIIMSFunction.Logistics, TaskDescription = $"Reorder {res.ItemName}", Priority = Priority.Critical, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddDays(1) };
                 result.Tasks.Add(task);
             }
 
@@ -88,7 +88,7 @@ n    {
                 var alert = new Alert { AlertId = Guid.NewGuid(), Type = AlertType.StaffingWarning, Message = $"Staff availability low: {availPercent:0.#}% available.", CreatedAt = DateTime.UtcNow };
                 result.Alerts.Add(alert);
 
-                var task = new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = _db.OutbreakEvents.First().OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = "Plan agency/backfill staffing", Priority = Priority.High, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddDays(1) };
+                var task = new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = _db.OutbreakEvents.First().OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = "Plan agency/backfill staffing", Priority = Priority.High, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddDays(1) };
                 result.Tasks.Add(task);
             }
 
@@ -102,7 +102,7 @@ n    {
                     var alert = new Alert { AlertId = Guid.NewGuid(), Type = AlertType.PersonCentredRisk, Message = $"Resident {resident.FirstName} {resident.LastName} at risk of isolation distress (>48h).", CreatedAt = DateTime.UtcNow };
                     result.Alerts.Add(alert);
 
-                    var task = new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = c.OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = $"Review person-centred isolation support plan for {resident.FirstName} {resident.LastName}", Priority = Priority.Medium, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(24) };
+                    var task = new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = c.OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = $"Review person-centred isolation support plan for {resident.FirstName} {resident.LastName}", Priority = Priority.Medium, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(24) };
                     result.Tasks.Add(task);
                 }
             }
@@ -166,16 +166,16 @@ n    {
         private List<TaskAction> GenerateInitialAIIMSTasks(OutbreakEvent outbreak)
         {
             var tasks = new List<TaskAction>();
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Control, TaskDescription = "Assign Incident Controller", Priority = Priority.Critical, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(1) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Intelligence, TaskDescription = "Confirm outbreak type and pathogen", Priority = Priority.Critical, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(4) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Control, TaskDescription = "Notify IPC Lead", Priority = Priority.Critical, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(1) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = "Establish affected zones", Priority = Priority.Critical, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(3) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Intelligence, TaskDescription = "Commence enhanced surveillance", Priority = Priority.High, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(6) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Logistics, TaskDescription = "Review PPE stock", Priority = Priority.Critical, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(2) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = "Review staffing capacity", Priority = Priority.High, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(4) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Communications, TaskDescription = "Prepare family communication", Priority = Priority.High, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(8) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Communications, TaskDescription = "Prepare staff communication", Priority = Priority.High, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(6) });
-            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Recovery, TaskDescription = "Create Recovery/BAU plan", Priority = Priority.High, Status = TaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(12) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Control, TaskDescription = "Assign Incident Controller", Priority = Priority.Critical, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(1) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Intelligence, TaskDescription = "Confirm outbreak type and pathogen", Priority = Priority.Critical, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(4) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Control, TaskDescription = "Notify IPC Lead", Priority = Priority.Critical, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(1) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = "Establish affected zones", Priority = Priority.Critical, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(3) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Intelligence, TaskDescription = "Commence enhanced surveillance", Priority = Priority.High, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(6) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Logistics, TaskDescription = "Review PPE stock", Priority = Priority.Critical, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(2) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = "Review staffing capacity", Priority = Priority.High, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(4) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Communications, TaskDescription = "Prepare family communication", Priority = Priority.High, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(8) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Communications, TaskDescription = "Prepare staff communication", Priority = Priority.High, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(6) });
+            tasks.Add(new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, AIIMSFunction = AIIMSFunction.Recovery, TaskDescription = "Create Recovery/BAU plan", Priority = Priority.High, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddHours(12) });
             return tasks;
         }
     }
