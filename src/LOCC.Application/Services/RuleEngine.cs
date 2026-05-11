@@ -5,6 +5,7 @@ using LOCC.Infrastructure;
 using LOCC.Domain.Entities;
 using LOCC.Domain;
 using DomainTaskStatus = LOCC.Domain.TaskStatus;
+using Microsoft.EntityFrameworkCore;
 
 namespace LOCC.Application.Services
 {
@@ -57,10 +58,11 @@ namespace LOCC.Application.Services
                     var tasks = GenerateInitialAIIMSTasks(_db.OutbreakEvents.First());
                     result.Tasks.AddRange(tasks);
 
-                   // Create RecoveryBAU record if not exists
+                 // Create RecoveryBAU record if not exists
                     var ob = _db.OutbreakEvents.First();
 
                     var existingRecovery = _db.RecoveryBAUs
+                        .AsNoTracking()
                         .FirstOrDefault(r => r.OutbreakId == ob.OutbreakId);
 
                     if (existingRecovery == null)
@@ -71,6 +73,18 @@ namespace LOCC.Application.Services
                     else
                     {
                         result.Recovery = existingRecovery;
+
+                        Console.WriteLine("RecoveryBAU already exists. Skipping creation.");
+
+                        // Prevent EF from trying to insert another RecoveryBAU
+                        var trackedRecovery = _db.ChangeTracker
+                            .Entries<RecoveryBAU>()
+                            .FirstOrDefault();
+
+                        if (trackedRecovery != null)
+                        {
+                            trackedRecovery.State = EntityState.Detached;
+                        }
                     }
                 }
             }

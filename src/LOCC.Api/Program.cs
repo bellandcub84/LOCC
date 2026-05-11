@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using LOCC.Infrastructure;
 using LOCC.Infrastructure.Seed;
 using LOCC.Application.Services;
+using LOCC.Application.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,14 +77,21 @@ app.MapGet("/api/outbreaks", (LoccDbContext db) =>
     return Results.Ok(db.OutbreakEvents.ToList());
 });
 
-app.MapGet("/api/cases", (LoccDbContext db) =>
-{
-    return Results.Ok(db.Cases.ToList());
-});
-
 app.MapGet("/api/tasks", (LoccDbContext db) =>
 {
-    return Results.Ok(db.TaskActions.ToList());
+    var tasks = db.TaskActions
+        .ToList()
+        .Select(task => new TaskDto
+        {
+            TaskId = task.TaskId,
+            TaskDescription = task.TaskDescription,
+            Priority = task.Priority.ToString(),
+            Status = task.Status.ToString(),
+            OperationalArea = AIIMSLabelService.GetOperationalLabel(task.AIIMSFunction),
+            DueDateTime = task.DueDateTime
+        });
+
+    return Results.Ok(tasks);
 });
 
 app.MapGet("/api/resources", (LoccDbContext db) =>

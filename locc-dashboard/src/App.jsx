@@ -1,5 +1,45 @@
 import { useEffect, useState } from 'react'
 
+const getPriorityStyle = (priority) => {
+  switch (priority) {
+
+    case 4:
+      return {
+        label: '🟢 Complete',
+        background: '#e8f5e9',
+        border: '#4caf50'
+      }
+
+    case 3:
+      return {
+        label: '🔴 Critical',
+        background: '#ffe5e5',
+        border: '#ff4d4d'
+      }
+
+    case 2:
+      return {
+        label: '🟠 High',
+        background: '#fff3e0',
+        border: '#ff9800'
+      }
+
+    case 1:
+      return {
+        label: '🟡 Moderate',
+        background: '#fffde7',
+        border: '#fbc02d'
+      }
+
+    default:
+      return {
+        label: '🔵 Low',
+        background: '#e3f2fd',
+        border: '#64b5f6'
+      }
+  }
+}
+
 function App() {
   const [tasks, setTasks] = useState([])
   const [error, setError] = useState('')
@@ -43,15 +83,19 @@ function App() {
             <div
               key={task.taskId}
               style={{
-                border: '1px solid #ccc',
+                border: `2px solid ${getPriorityStyle(task.priority).border}`,
+                backgroundColor: getPriorityStyle(task.priority).background,
                 padding: '12px',
                 marginBottom: '10px',
                 borderRadius: '8px',
               }}
             >
               <strong>{task.taskDescription}</strong>
-              <p>Priority: {task.priority}</p>
-              <p>AIIMS Function: {task.aiimsFunction}</p>
+              <p>
+                <strong>Priority:</strong>{' '}
+                {getPriorityStyle(task.priority).label}
+              </p>
+              <p><strong>Domain:</strong> {task.aiimsFunctionLabel}</p>
             </div>
           ))}
         </>
