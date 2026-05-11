@@ -14,7 +14,7 @@ namespace LOCC.Domain
     public enum CaseStatus { Suspected, Confirmed, Recovered, Deceased }
     public enum TestResult { Positive, Negative, Invalid, Pending }
     public enum Priority { Low, Medium, High, Critical }
-    public enum TaskStatus { Pending, InProgress, Completed, Cancelled }
+    public enum TaskStatus { Pending, InProgress, Escalated, Blocked, Completed, Cancelled }
     public enum LocationType { Room, Wing, CommonArea }
     public enum ZoneStatus { Green, Amber, Red }
     public enum CohortingStatus { None, Cohorted, Isolated }

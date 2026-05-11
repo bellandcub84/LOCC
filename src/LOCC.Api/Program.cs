@@ -3,6 +3,7 @@ using LOCC.Infrastructure;
 using LOCC.Infrastructure.Seed;
 using LOCC.Application.Services;
 using LOCC.Application.DTOs;
+using LOCC.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +29,8 @@ var app = builder.Build();
 
 app.UseCors("AllowFrontend");
 
-// Seed database and run rule engine once on startup
+// Seed database only on startup.
+// Rule evaluation is triggered manually through POST /api/rules/evaluate.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -37,25 +39,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
     SeedData.EnsureSeedData(db);
 
-    var engine = services.GetRequiredService<RuleEngine>();
-    var result = engine.EvaluateAll();
-
-    Console.WriteLine("Rule engine executed. Generated alerts:");
-    foreach (var a in result.Alerts)
-    {
-        Console.WriteLine($"- [{a.Type}] {a.Message}");
-    }
-
-    Console.WriteLine("Generated tasks:");
-    foreach (var t in result.Tasks)
-    {
-        Console.WriteLine($"- [{t.AIIMSFunction}] {t.TaskDescription} (Priority: {t.Priority})");
-    }
-
-    if (result.Recovery != null)
-    {
-        Console.WriteLine($"Recovery record available. BAU Score: {result.Recovery.BAUReadinessScore:0.##}");
-    }
+    Console.WriteLine("Database initialised and seed data checked.");
 }
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
@@ -86,12 +70,43 @@ app.MapGet("/api/tasks", (LoccDbContext db) =>
             TaskId = task.TaskId,
             TaskDescription = task.TaskDescription,
             Priority = task.Priority.ToString(),
-            Status = task.Status.ToString(),
+            Status = TaskStatusLabelService.GetDisplayLabel(task.Status),
             OperationalArea = AIIMSLabelService.GetOperationalLabel(task.AIIMSFunction),
             DueDateTime = task.DueDateTime
         });
 
     return Results.Ok(tasks);
+});
+
+app.MapGet("/api/outbreak-summary", (LoccDbContext db) =>
+{
+    var outbreak = db.OutbreakEvents.FirstOrDefault();
+
+    if (outbreak == null)
+    {
+        return Results.NotFound();
+    }
+
+    var activeCases = db.Cases.Count(c =>
+        c.CaseStatus == CaseStatus.Suspected ||
+        c.CaseStatus == CaseStatus.Confirmed);
+
+    var recovery = db.RecoveryBAUs
+        .FirstOrDefault(r => r.OutbreakId == outbreak.OutbreakId);
+
+    var lowPPE = db.Resources
+        .Where(r => r.ResourceType == ResourceType.PPE && r.DaysRemaining <= 3)
+        .Count();
+
+    return Results.Ok(new
+    {
+        pathogen = outbreak.Pathogen,
+        outbreakPhase = outbreak.OutbreakPhase.ToString(),
+        riskLevel = outbreak.CurrentRiskLevel,
+        activeCases,
+        bauScore = recovery?.BAUReadinessScore ?? 0,
+        ppeWarnings = lowPPE
+    });
 });
 
 app.MapGet("/api/resources", (LoccDbContext db) =>

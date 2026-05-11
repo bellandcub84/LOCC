@@ -28,8 +28,64 @@ const groupTasksByOperationalArea = (tasks) => {
   }, {})
 }
 
+const getPriorityCounts = (tasks) => {
+  return tasks.reduce(
+    (counts, task) => {
+      const priority = task.priority || 'Low'
+      counts[priority] = (counts[priority] || 0) + 1
+      return counts
+    },
+    {
+      Critical: 0,
+      High: 0,
+      Moderate: 0,
+      Low: 0,
+      Complete: 0,
+    }
+  )
+}
+
+const getRiskStyle = (riskLevel) => {
+  switch ((riskLevel || '').toLowerCase()) {
+    case 'high':
+    case 'severe':
+      return { label: '🔴 High', background: '#ffe5e5', border: '#ff4d4d' }
+    case 'moderate':
+      return { label: '🟠 Moderate', background: '#fff3e0', border: '#ff9800' }
+    case 'low':
+      return { label: '🟢 Low', background: '#e8f5e9', border: '#4caf50' }
+    default:
+      return { label: riskLevel || 'Unknown', background: '#f5f5f5', border: '#ccc' }
+  }
+}
+
+const getBauStyle = (score) => {
+  if (score >= 80) {
+    return { label: '🟢 Ready', background: '#e8f5e9', border: '#4caf50' }
+  }
+
+  if (score >= 60) {
+    return { label: '🟡 Caution', background: '#fffde7', border: '#fbc02d' }
+  }
+
+  return { label: '🔴 Not ready', background: '#ffe5e5', border: '#ff4d4d' }
+}
+
+const getPpeWarningStyle = (warnings) => {
+  if (warnings >= 2) {
+    return { label: '🔴 Action required', background: '#ffe5e5', border: '#ff4d4d' }
+  }
+
+  if (warnings === 1) {
+    return { label: '🟠 Monitor', background: '#fff3e0', border: '#ff9800' }
+  }
+
+  return { label: '🟢 Stable', background: '#e8f5e9', border: '#4caf50' }
+}
+
 function App() {
   const [tasks, setTasks] = useState([])
+  const [summary, setSummary] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [collapsedAreas, setCollapsedAreas] = useState({})
@@ -38,7 +94,7 @@ function App() {
     fetch('http://localhost:5000/api/tasks')
       .then((res) => {
         if (!res.ok) {
-          throw new Error(`API returned ${res.status}`)
+          throw new Error(`Tasks API returned ${res.status}`)
         }
 
         return res.json()
@@ -51,9 +107,21 @@ function App() {
         setError(err.message)
         setLoading(false)
       })
+
+    fetch('http://localhost:5000/api/outbreak-summary')
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Summary API returned ${res.status}`)
+        }
+
+        return res.json()
+      })
+      .then((data) => setSummary(data))
+      .catch((err) => console.error('Summary fetch error:', err))
   }, [])
 
   const groupedTasks = groupTasksByOperationalArea(tasks)
+  const priorityCounts = getPriorityCounts(tasks)
 
   const toggleArea = (area) => {
     setCollapsedAreas((prev) => ({
@@ -65,6 +133,117 @@ function App() {
   return (
     <div style={{ padding: '24px', fontFamily: 'Arial' }}>
       <h1>LOCC Incident Controller Dashboard</h1>
+
+      {summary && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '12px',
+            marginBottom: '24px',
+          }}
+        >
+          <div style={{ padding: '12px', border: '2px solid #ccc', borderRadius: '10px' }}>
+            <strong>Pathogen</strong>
+            <div>{summary.pathogen}</div>
+          </div>
+
+          <div style={{ padding: '12px', border: '2px solid #ccc', borderRadius: '10px' }}>
+            <strong>Outbreak Phase</strong>
+            <div>{summary.outbreakPhase}</div>
+          </div>
+
+          {(() => {
+            const style = getRiskStyle(summary.riskLevel)
+
+            return (
+              <div
+                style={{
+                  padding: '12px',
+                  border: `2px solid ${style.border}`,
+                  backgroundColor: style.background,
+                  borderRadius: '10px',
+                }}
+              >
+                <strong>Risk Level</strong>
+                <div>{style.label}</div>
+              </div>
+            )
+          })()}
+
+          <div style={{ padding: '12px', border: '2px solid #ccc', borderRadius: '10px' }}>
+            <strong>Active Cases</strong>
+            <div>{summary.activeCases}</div>
+          </div>
+
+          {(() => {
+            const style = getBauStyle(summary.bauScore)
+
+            return (
+              <div
+                style={{
+                  padding: '12px',
+                  border: `2px solid ${style.border}`,
+                  backgroundColor: style.background,
+                  borderRadius: '10px',
+                }}
+              >
+                <strong>BAU Score</strong>
+                <div>{summary.bauScore}</div>
+                <small>{style.label}</small>
+              </div>
+            )
+          })()}
+
+          {(() => {
+            const style = getPpeWarningStyle(summary.ppeWarnings)
+
+            return (
+              <div
+                style={{
+                  padding: '12px',
+                  border: `2px solid ${style.border}`,
+                  backgroundColor: style.background,
+                  borderRadius: '10px',
+                }}
+              >
+                <strong>PPE Warnings</strong>
+                <div>{summary.ppeWarnings}</div>
+                <small>{style.label}</small>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '12px',
+          marginBottom: '24px',
+        }}
+      >
+        {Object.entries(priorityCounts).map(([priority, count]) => {
+          const style = getPriorityStyle(priority)
+
+          return (
+            <div
+              key={priority}
+              style={{
+                border: `2px solid ${style.border}`,
+                backgroundColor: style.background,
+                borderRadius: '10px',
+                padding: '12px',
+                textAlign: 'center',
+              }}
+            >
+              <strong>{style.label}</strong>
+              <div style={{ fontSize: '24px', marginTop: '6px' }}>{count}</div>
+            </div>
+          )
+        })}
+      </div>
 
       {loading && <p>Loading tasks from LOCC API...</p>}
 
