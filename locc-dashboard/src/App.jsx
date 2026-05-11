@@ -2,48 +2,37 @@ import { useEffect, useState } from 'react'
 
 const getPriorityStyle = (priority) => {
   switch (priority) {
-
-    case 4:
-      return {
-        label: '🟢 Complete',
-        background: '#e8f5e9',
-        border: '#4caf50'
-      }
-
-    case 3:
-      return {
-        label: '🔴 Critical',
-        background: '#ffe5e5',
-        border: '#ff4d4d'
-      }
-
-    case 2:
-      return {
-        label: '🟠 High',
-        background: '#fff3e0',
-        border: '#ff9800'
-      }
-
-    case 1:
-      return {
-        label: '🟡 Moderate',
-        background: '#fffde7',
-        border: '#fbc02d'
-      }
-
+    case 'Complete':
+      return { label: '🟢 Complete', background: '#e8f5e9', border: '#4caf50' }
+    case 'Critical':
+      return { label: '🔴 Critical', background: '#ffe5e5', border: '#ff4d4d' }
+    case 'High':
+      return { label: '🟠 High', background: '#fff3e0', border: '#ff9800' }
+    case 'Moderate':
+      return { label: '🟡 Moderate', background: '#fffde7', border: '#fbc02d' }
     default:
-      return {
-        label: '🔵 Low',
-        background: '#e3f2fd',
-        border: '#64b5f6'
-      }
+      return { label: '🔵 Low', background: '#e3f2fd', border: '#64b5f6' }
   }
+}
+
+const groupTasksByOperationalArea = (tasks) => {
+  return tasks.reduce((groups, task) => {
+    const area = task.operationalArea || 'Unassigned'
+
+    if (!groups[area]) {
+      groups[area] = []
+    }
+
+    groups[area].push(task)
+    return groups
+  }, {})
 }
 
 function App() {
   const [tasks, setTasks] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [collapsedAreas, setCollapsedAreas] = useState({})
 
   useEffect(() => {
     fetch('http://localhost:5000/api/tasks')
@@ -51,6 +40,7 @@ function App() {
         if (!res.ok) {
           throw new Error(`API returned ${res.status}`)
         }
+
         return res.json()
       })
       .then((data) => {
@@ -62,6 +52,15 @@ function App() {
         setLoading(false)
       })
   }, [])
+
+  const groupedTasks = groupTasksByOperationalArea(tasks)
+
+  const toggleArea = (area) => {
+    setCollapsedAreas((prev) => ({
+      ...prev,
+      [area]: !prev[area],
+    }))
+  }
 
   return (
     <div style={{ padding: '24px', fontFamily: 'Arial' }}>
@@ -79,24 +78,63 @@ function App() {
         <>
           <p>Connected to API. Tasks loaded: {tasks.length}</p>
 
-          {tasks.map((task) => (
-            <div
-              key={task.taskId}
+          {Object.entries(groupedTasks).map(([area, areaTasks]) => (
+            <section
+              key={area}
               style={{
-                border: `2px solid ${getPriorityStyle(task.priority).border}`,
-                backgroundColor: getPriorityStyle(task.priority).background,
-                padding: '12px',
-                marginBottom: '10px',
-                borderRadius: '8px',
+                marginBottom: '24px',
+                padding: '16px',
+                border: '2px solid #ddd',
+                borderRadius: '12px',
+                backgroundColor: '#fafafa',
               }}
             >
-              <strong>{task.taskDescription}</strong>
-              <p>
-                <strong>Priority:</strong>{' '}
-                {getPriorityStyle(task.priority).label}
-              </p>
-              <p><strong>Domain:</strong> {task.aiimsFunctionLabel}</p>
-            </div>
+              <div
+                onClick={() => toggleArea(area)}
+                style={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
+                <div>
+                  <h2 style={{ marginBottom: '4px' }}>{area}</h2>
+                  <p style={{ marginTop: 0 }}>{areaTasks.length} task(s)</p>
+                </div>
+
+                <strong style={{ fontSize: '24px' }}>
+                  {collapsedAreas[area] ? '＋' : '−'}
+                </strong>
+              </div>
+
+              {!collapsedAreas[area] && (
+                <>
+                  {areaTasks.map((task) => {
+                    const style = getPriorityStyle(task.priority)
+
+                    return (
+                      <div
+                        key={task.taskId}
+                        style={{
+                          border: `2px solid ${style.border}`,
+                          backgroundColor: style.background,
+                          padding: '12px',
+                          marginBottom: '10px',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        <strong>{task.taskDescription}</strong>
+                        <p><strong>Priority:</strong> {style.label}</p>
+                        <p><strong>Operational Area:</strong> {task.operationalArea}</p>
+                        <p><strong>Status:</strong> {task.status}</p>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+            </section>
           ))}
         </>
       )}
