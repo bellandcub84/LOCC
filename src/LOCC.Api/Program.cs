@@ -78,6 +78,40 @@ app.MapGet("/api/tasks", (LoccDbContext db) =>
     return Results.Ok(tasks);
 });
 
+app.MapPatch("/api/tasks/{taskId:guid}/status", (Guid taskId, UpdateTaskStatusRequest request, LoccDbContext db) =>
+{
+    var task = db.TaskActions.FirstOrDefault(t => t.TaskId == taskId);
+
+    if (task == null)
+    {
+        return Results.NotFound(new { message = "Task not found" });
+    }
+
+    if (Enum.TryParse<LOCC.Domain.TaskStatus>(
+        request.Status.Replace(" ", ""),
+        true,
+        out var newStatus))
+    {
+        return Results.BadRequest(new { message = $"Invalid task status: {request.Status}" });
+    }
+
+    task.Status = newStatus;
+
+    db.SaveChanges();
+
+    var updatedTask = new TaskDto
+    {
+        TaskId = task.TaskId,
+        TaskDescription = task.TaskDescription,
+        Priority = task.Priority.ToString(),
+        Status = TaskStatusLabelService.GetDisplayLabel(task.Status),
+        OperationalArea = AIIMSLabelService.GetOperationalLabel(task.AIIMSFunction),
+        DueDateTime = task.DueDateTime
+    };
+
+    return Results.Ok(updatedTask);
+});
+
 app.MapGet("/api/outbreak-summary", (LoccDbContext db) =>
 {
     var outbreak = db.OutbreakEvents.FirstOrDefault();
@@ -120,3 +154,8 @@ app.MapGet("/api/recovery", (LoccDbContext db) =>
 });
 
 app.Run();
+
+public class UpdateTaskStatusRequest
+{
+    public string Status { get; set; } = "";
+}

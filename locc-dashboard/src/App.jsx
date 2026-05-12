@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import TaskLifecycleUpdate from './components/TaskLifecycleUpdate'
 
 const getPriorityStyle = (priority) => {
   switch (priority) {
@@ -89,6 +90,14 @@ function App() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [collapsedAreas, setCollapsedAreas] = useState({})
+
+  const handleStatusUpdated = (updatedTask) => {
+  setTasks((prevTasks) =>
+    prevTasks.map((task) =>
+      task.taskId === updatedTask.taskId ? updatedTask : task
+    )
+  )
+}
 
   useEffect(() => {
     fetch('http://localhost:5000/api/tasks')
@@ -307,7 +316,10 @@ function App() {
                         <strong>{task.taskDescription}</strong>
                         <p><strong>Priority:</strong> {style.label}</p>
                         <p><strong>Operational Area:</strong> {task.operationalArea}</p>
-                        <p><strong>Status:</strong> {task.status}</p>
+                        <TaskLifecycleUpdate
+                          task={task}
+                          onStatusUpdated={handleStatusUpdated}
+                        />
                       </div>
                     )
                   })}
