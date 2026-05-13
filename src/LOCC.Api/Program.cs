@@ -50,9 +50,10 @@ app.MapPost("/api/rules/evaluate", (RuleEngine ruleEngine) =>
 
     return Results.Ok(new
     {
-        alerts = result.Alerts,
-        tasks = result.Tasks,
-        recovery = result.Recovery
+        alertsGenerated = result.Alerts.Count,
+        tasksGenerated = result.Tasks.Count,
+        recoveryAvailable = result.Recovery != null,
+        bauScore = result.Recovery?.BAUReadinessScore
     });
 });
 
@@ -87,8 +88,18 @@ app.MapPatch("/api/tasks/{taskId:guid}/status", (Guid taskId, UpdateTaskStatusRe
         return Results.NotFound(new { message = "Task not found" });
     }
 
-    if (Enum.TryParse<LOCC.Domain.TaskStatus>(
-        request.Status.Replace(" ", ""),
+    var cleanedStatus = request.Status
+        .Replace(" ", "")
+        .Replace("🟢", "")
+        .Replace("🔵", "")
+        .Replace("🔴", "")
+        .Replace("🟠", "")
+        .Replace("🟡", "")
+        .Replace("⚪", "")
+        .Trim();
+
+    if (!Enum.TryParse<LOCC.Domain.TaskStatus>(
+        cleanedStatus,
         true,
         out var newStatus))
     {

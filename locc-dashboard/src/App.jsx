@@ -3,8 +3,6 @@ import TaskLifecycleUpdate from './components/TaskLifecycleUpdate'
 
 const getPriorityStyle = (priority) => {
   switch (priority) {
-    case 'Complete':
-      return { label: '🟢 Complete', background: '#e8f5e9', border: '#4caf50' }
     case 'Critical':
       return { label: '🔴 Critical', background: '#ffe5e5', border: '#ff4d4d' }
     case 'High':
@@ -41,7 +39,6 @@ const getPriorityCounts = (tasks) => {
       High: 0,
       Moderate: 0,
       Low: 0,
-      Complete: 0,
     }
   )
 }
@@ -82,6 +79,41 @@ const getPpeWarningStyle = (warnings) => {
   }
 
   return { label: '🟢 Stable', background: '#e8f5e9', border: '#4caf50' }
+}
+
+const getStatusStyle = (status) => {
+  switch (status) {
+    case 'Completed':
+      return { label: '🟢 Completed', background: '#e8f5e9', border: '#4caf50' }
+    case 'In Progress':
+      return { label: '🔵 In Progress', background: '#e3f2fd', border: '#2196f3' }
+    case 'Escalated':
+      return { label: '🔴 Escalated', background: '#ffe5e5', border: '#ff4d4d' }
+    case 'Blocked':
+      return { label: '🟠 Blocked', background: '#fff3e0', border: '#ff9800' }
+    case 'Cancelled':
+      return { label: '⚪ Cancelled', background: '#f5f5f5', border: '#999' }
+    default:
+      return { label: '🟡 Pending', background: '#fffde7', border: '#fbc02d' }
+  }
+}
+
+const getStatusCounts = (tasks) => {
+  return tasks.reduce(
+    (counts, task) => {
+      const status = task.status || 'Pending'
+      counts[status] = (counts[status] || 0) + 1
+      return counts
+    },
+    {
+      Pending: 0,
+      'In Progress': 0,
+      Escalated: 0,
+      Blocked: 0,
+      Completed: 0,
+      Cancelled: 0,
+    }
+  )
 }
 
 function App() {
@@ -131,6 +163,7 @@ function App() {
 
   const groupedTasks = groupTasksByOperationalArea(tasks)
   const priorityCounts = getPriorityCounts(tasks)
+  const statusCounts = getStatusCounts(tasks)
 
   const toggleArea = (area) => {
     setCollapsedAreas((prev) => ({
@@ -239,6 +272,36 @@ function App() {
           return (
             <div
               key={priority}
+              style={{
+                border: `2px solid ${style.border}`,
+                backgroundColor: style.background,
+                borderRadius: '10px',
+                padding: '12px',
+                textAlign: 'center',
+              }}
+            >
+              <strong>{style.label}</strong>
+              <div style={{ fontSize: '24px', marginTop: '6px' }}>{count}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      <h2>Task Lifecycle Summary</h2>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '12px',
+          marginBottom: '24px',
+        }}
+      >
+        {Object.entries(statusCounts).map(([status, count]) => {
+          const style = getStatusStyle(status)
+
+          return (
+            <div
+              key={status}
               style={{
                 border: `2px solid ${style.border}`,
                 backgroundColor: style.background,
