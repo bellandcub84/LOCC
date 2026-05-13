@@ -164,6 +164,26 @@ app.MapGet("/api/recovery", (LoccDbContext db) =>
     return Results.Ok(db.RecoveryBAUs.ToList());
 });
 
+app.MapGet("/api/rooms", (LoccDbContext db) =>
+{
+    var rooms = db.FacilityRooms
+        .ToList()
+        .Select(room => new
+        {
+            room.FacilityRoomId,
+            room.RoomName,
+            room.Zone,
+            riskLevel = room.RiskLevel.ToString(),
+            room.IsIsolationRoom,
+            room.HasConfirmedCase,
+            room.HasSuspectedCase,
+            room.IsClosed,
+            room.Notes
+        });
+
+    return Results.Ok(rooms);
+});
+
 app.Run();
 
 public class UpdateTaskStatusRequest

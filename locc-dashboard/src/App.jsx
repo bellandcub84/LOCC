@@ -116,12 +116,41 @@ const getStatusCounts = (tasks) => {
   )
 }
 
+const getRoomRiskStyle = (riskLevel) => {
+  switch ((riskLevel || '').toLowerCase()) {
+    case 'critical':
+      return { label: '🔴 Critical', background: '#ffe5e5', border: '#ff4d4d' }
+    case 'high':
+      return { label: '🟠 High', background: '#fff3e0', border: '#ff9800' }
+    case 'moderate':
+      return { label: '🟡 Moderate', background: '#fffde7', border: '#fbc02d' }
+    case 'low':
+      return { label: '🟢 Low', background: '#e8f5e9', border: '#4caf50' }
+    default:
+      return { label: 'Unknown', background: '#f5f5f5', border: '#ccc' }
+  }
+}
+
+const groupRoomsByZone = (rooms) => {
+  return rooms.reduce((groups, room) => {
+    const zone = room.zone || 'Unassigned Zone'
+
+    if (!groups[zone]) {
+      groups[zone] = []
+    }
+
+    groups[zone].push(room)
+    return groups
+  }, {})
+}
+
 function App() {
   const [tasks, setTasks] = useState([])
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [collapsedAreas, setCollapsedAreas] = useState({})
+  const [rooms, setRooms] = useState([])
 
   const handleStatusUpdated = (updatedTask) => {
   setTasks((prevTasks) =>
@@ -159,11 +188,22 @@ function App() {
       })
       .then((data) => setSummary(data))
       .catch((err) => console.error('Summary fetch error:', err))
+
+      fetch('http://localhost:5000/api/rooms')
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Rooms API returned ${res.status}`)
+          }
+          return res.json()
+        })
+        .then((data) => setRooms(data))
+        .catch((err) => console.error('Rooms fetch error:', err))
   }, [])
 
   const groupedTasks = groupTasksByOperationalArea(tasks)
   const priorityCounts = getPriorityCounts(tasks)
   const statusCounts = getStatusCounts(tasks)
+  const groupedRooms = groupRoomsByZone(rooms)
 
   const toggleArea = (area) => {
     setCollapsedAreas((prev) => ({
@@ -316,6 +356,67 @@ function App() {
           )
         })}
       </div>
+
+      <section
+  style={{
+    marginBottom: '24px',
+    padding: '16px',
+    border: '2px solid #ddd',
+    borderRadius: '12px',
+    backgroundColor: '#fafafa',
+  }}
+>
+  <h2>Environmental Risk Zones</h2>
+  <p style={{ marginTop: 0 }}>
+    Room-level outbreak zoning and IPC risk visibility.
+  </p>
+
+  {Object.entries(groupedRooms).map(([zone, zoneRooms]) => (
+    <div key={zone} style={{ marginBottom: '20px' }}>
+      <h3>{zone}</h3>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '12px',
+        }}
+      >
+        {zoneRooms.map((room) => {
+          const style = getRoomRiskStyle(room.riskLevel)
+
+          return (
+            <div
+              key={room.facilityRoomId}
+              style={{
+                padding: '12px',
+                border: `2px solid ${style.border}`,
+                backgroundColor: style.background,
+                borderRadius: '10px',
+              }}
+            >
+              <strong>{room.roomName}</strong>
+              <p><strong>Risk:</strong> {style.label}</p>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {room.hasConfirmedCase && <small>Confirmed</small>}
+                {room.hasSuspectedCase && <small>Suspected</small>}
+                {room.isIsolationRoom && <small>Isolation</small>}
+                {room.isClosed && <small>Closed</small>}
+              </div>
+
+              {room.notes && (
+                <p style={{ fontSize: '13px', marginBottom: 0 }}>
+                  {room.notes}
+                </p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  ))}
+</section>
 
       {loading && <p>Loading tasks from LOCC API...</p>}
 
