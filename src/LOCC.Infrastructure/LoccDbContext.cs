@@ -23,6 +23,7 @@ namespace LOCC.Infrastructure
         public DbSet<Alert> Alerts => Set<Alert>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<EvidenceSource> EvidenceSources => Set<EvidenceSource>();
+        public DbSet<FacilityRoom> FacilityRooms => Set<FacilityRoom>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

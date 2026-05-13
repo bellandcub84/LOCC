@@ -25,4 +25,6 @@ namespace LOCC.Domain
     public enum Outcome { Stable, Deteriorated, Transferred, Deceased }
     public enum RecoveryPhase { Stage1_ActiveControl, Stage2_Stabilising, Stage3_ControlledReopening, Stage4_ReturnToBAU, Stage5_Closed }
     public enum ClinicalConcernLevel { Low, Moderate, High }
-}
+    public enum RoomRiskLevel {  Low, Moderate, High, Critical}
+       
+    }

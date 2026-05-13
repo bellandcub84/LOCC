@@ -247,4 +247,24 @@ namespace LOCC.Domain.Entities
         public string? Actor { get; set; }
         public string? Details { get; set; }
     }
+    public class FacilityRoom
+    {
+        public int FacilityRoomId { get; set; }
+
+        public string RoomName { get; set; } = "";
+
+        public string Zone { get; set; } = "";
+
+        public RoomRiskLevel RiskLevel { get; set; }
+
+        public bool IsIsolationRoom { get; set; }
+
+        public bool HasConfirmedCase { get; set; }
+
+        public bool HasSuspectedCase { get; set; }
+
+        public bool IsClosed { get; set; }
+
+        public string Notes { get; set; } = "";
+    }
 }

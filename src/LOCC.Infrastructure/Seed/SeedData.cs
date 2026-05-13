@@ -40,12 +40,32 @@ namespace LOCC.Infrastructure.Seed
 
             context.Staff.AddRange(sIC, sIPC, sOps);
 
-            var locEast = new Location { LocationId = Guid.NewGuid(), FacilityId = facility.FacilityId, LocationName = "East Wing", LocationType = LocationType.Wing, Wing = "East", ZoneStatus = ZoneStatus.Red, CohortingStatus = CohortingStatus.Isolated, CleaningStatus = CleaningStatus.InProgress };
-            var locNorth = new Location { LocationId = Guid.NewGuid(), FacilityId = facility.FacilityId, LocationName = "North Wing", LocationType = LocationType.Wing, Wing = "North", ZoneStatus = ZoneStatus.Amber, CohortingStatus = CohortingStatus.Cohorted, CleaningStatus = CleaningStatus.Due };
+            var locEast = new Location
+            {
+                LocationId = Guid.NewGuid(),
+                FacilityId = facility.FacilityId,
+                LocationName = "East Wing",
+                LocationType = LocationType.Wing,
+                Wing = "East",
+                ZoneStatus = ZoneStatus.Red,
+                CohortingStatus = CohortingStatus.Isolated,
+                CleaningStatus = CleaningStatus.InProgress
+            };
+
+            var locNorth = new Location
+            {
+                LocationId = Guid.NewGuid(),
+                FacilityId = facility.FacilityId,
+                LocationName = "North Wing",
+                LocationType = LocationType.Wing,
+                Wing = "North",
+                ZoneStatus = ZoneStatus.Amber,
+                CohortingStatus = CohortingStatus.Cohorted,
+                CleaningStatus = CleaningStatus.Due
+            };
 
             context.Locations.AddRange(locEast, locNorth);
 
-            // Create an outbreak (not yet declared) with two cases in East wing in last 24 hours
             var outbreak = new OutbreakEvent
             {
                 OutbreakId = Guid.NewGuid(),
@@ -57,34 +77,137 @@ namespace LOCC.Infrastructure.Seed
                 AIIMSStatus = AIIMSFunction.Intelligence,
                 CurrentRiskLevel = "Moderate"
             };
+
             context.OutbreakEvents.Add(outbreak);
 
-            var c1 = new Case { CaseId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, PersonType = PersonType.Resident, PersonId = r1.ResidentId, CaseStatus = CaseStatus.Suspected, OnsetDate = DateTime.UtcNow.AddHours(-20), LocationAtOnset = "East Wing", LikelyExposureZone = "East" };
-            var c2 = new Case { CaseId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, PersonType = PersonType.Resident, PersonId = r2.ResidentId, CaseStatus = CaseStatus.Suspected, OnsetDate = DateTime.UtcNow.AddHours(-16), LocationAtOnset = "East Wing", LikelyExposureZone = "East" };
+            var c1 = new Case
+            {
+                CaseId = Guid.NewGuid(),
+                OutbreakId = outbreak.OutbreakId,
+                PersonType = PersonType.Resident,
+                PersonId = r1.ResidentId,
+                CaseStatus = CaseStatus.Suspected,
+                OnsetDate = DateTime.UtcNow.AddHours(-20),
+                LocationAtOnset = "East Wing",
+                LikelyExposureZone = "East"
+            };
+
+            var c2 = new Case
+            {
+                CaseId = Guid.NewGuid(),
+                OutbreakId = outbreak.OutbreakId,
+                PersonType = PersonType.Resident,
+                PersonId = r2.ResidentId,
+                CaseStatus = CaseStatus.Suspected,
+                OnsetDate = DateTime.UtcNow.AddHours(-16),
+                LocationAtOnset = "East Wing",
+                LikelyExposureZone = "East"
+            };
 
             context.Cases.AddRange(c1, c2);
 
-            // Tests: one positive for c1
-            var t1 = new TestRecord { TestId = Guid.NewGuid(), CaseId = c1.CaseId, TestType = "RAT", TestDate = DateTime.UtcNow.AddHours(-6), PathogenTested = "SARS-CoV-2", Result = TestResult.Positive, ResultDate = DateTime.UtcNow.AddHours(-5), EnteredBy = "Nurse A" };
-            var t2 = new TestRecord { TestId = Guid.NewGuid(), CaseId = c2.CaseId, TestType = "RAT", TestDate = DateTime.UtcNow.AddHours(-4), PathogenTested = "SARS-CoV-2", Result = TestResult.Pending, EnteredBy = "Nurse B" };
+            var t1 = new TestRecord
+            {
+                TestId = Guid.NewGuid(),
+                CaseId = c1.CaseId,
+                TestType = "RAT",
+                TestDate = DateTime.UtcNow.AddHours(-6),
+                PathogenTested = "SARS-CoV-2",
+                Result = TestResult.Positive,
+                ResultDate = DateTime.UtcNow.AddHours(-5),
+                EnteredBy = "Nurse A"
+            };
+
+            var t2 = new TestRecord
+            {
+                TestId = Guid.NewGuid(),
+                CaseId = c2.CaseId,
+                TestType = "RAT",
+                TestDate = DateTime.UtcNow.AddHours(-4),
+                PathogenTested = "SARS-CoV-2",
+                Result = TestResult.Pending,
+                EnteredBy = "Nurse B"
+            };
 
             context.TestRecords.AddRange(t1, t2);
 
-            // Resources: PPE low
-            var rPPE1 = new Resource { ResourceId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, ResourceType = ResourceType.PPE, ItemName = "N95 Masks", CurrentStock = 30, DailyBurnRate = 10, DaysRemaining = 3, ReorderThreshold = 5, Status = "InUse" };
-            var rPPE2 = new Resource { ResourceId = Guid.NewGuid(), OutbreakId = outbreak.OutbreakId, ResourceType = ResourceType.PPE, ItemName = "Gowns", CurrentStock = 10, DailyBurnRate = 5, DaysRemaining = 2, ReorderThreshold = 3, Status = "InUse" };
+            var rPPE1 = new Resource
+            {
+                ResourceId = Guid.NewGuid(),
+                OutbreakId = outbreak.OutbreakId,
+                ResourceType = ResourceType.PPE,
+                ItemName = "N95 Masks",
+                CurrentStock = 30,
+                DailyBurnRate = 10,
+                DaysRemaining = 3,
+                ReorderThreshold = 5,
+                Status = "InUse"
+            };
+
+            var rPPE2 = new Resource
+            {
+                ResourceId = Guid.NewGuid(),
+                OutbreakId = outbreak.OutbreakId,
+                ResourceType = ResourceType.PPE,
+                ItemName = "Gowns",
+                CurrentStock = 10,
+                DailyBurnRate = 5,
+                DaysRemaining = 2,
+                ReorderThreshold = 3,
+                Status = "InUse"
+            };
 
             context.Resources.AddRange(rPPE1, rPPE2);
 
-            // Recovery record will be auto-created by the application rule engine; create a placeholder here
+            var audit = new AuditLog
+            {
+                AuditLogId = Guid.NewGuid(),
+                Timestamp = DateTime.UtcNow,
+                Action = "OutbreakSeeded",
+                Actor = "system",
+                Details = "Seeded outbreak with two suspected resident cases in East wing"
+            };
 
-            // Audit: outbreak detection
-            var audit = new AuditLog { AuditLogId = Guid.NewGuid(), Timestamp = DateTime.UtcNow, Action = "OutbreakSeeded", Actor = "system", Details = "Seeded outbreak with two suspected resident cases in East wing" };
             context.AuditLogs.Add(audit);
 
-            // Evidence placeholder
-            var ev = new EvidenceSource { EvidenceSourceId = Guid.NewGuid(), Title = "CDNA outbreak definitions - placeholder", SourceType = "Guideline", Citation = "CDNA", Jurisdiction = "AU", AppliesToModule = "OutbreakDeclaration" };
+            var ev = new EvidenceSource
+            {
+                EvidenceSourceId = Guid.NewGuid(),
+                Title = "CDNA outbreak definitions - placeholder",
+                SourceType = "Guideline",
+                Citation = "CDNA",
+                Jurisdiction = "AU",
+                AppliesToModule = "OutbreakDeclaration"
+            };
+
             context.EvidenceSources.Add(ev);
+
+            if (!context.FacilityRooms.Any())
+            {
+                context.FacilityRooms.AddRange(
+                    new FacilityRoom
+                    {
+                        RoomName = "Room 101",
+                        Zone = "North Wing",
+                        RiskLevel = RoomRiskLevel.Critical,
+                        HasConfirmedCase = true,
+                        IsIsolationRoom = true
+                    },
+                    new FacilityRoom
+                    {
+                        RoomName = "Room 102",
+                        Zone = "North Wing",
+                        RiskLevel = RoomRiskLevel.High,
+                        HasSuspectedCase = true
+                    },
+                    new FacilityRoom
+                    {
+                        RoomName = "Room 201",
+                        Zone = "South Wing",
+                        RiskLevel = RoomRiskLevel.Low
+                    }
+                );
+            }
 
             context.SaveChanges();
         }
