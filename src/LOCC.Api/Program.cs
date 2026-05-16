@@ -4,6 +4,7 @@ using LOCC.Infrastructure.Seed;
 using LOCC.Application.Services;
 using LOCC.Application.DTOs;
 using LOCC.Domain;
+using LOCC.Application.Calculators.PPE;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ builder.Services.AddDbContext<LoccDbContext>(options =>
 
 // Application services
 builder.Services.AddScoped<RuleEngine>();
+builder.Services.AddScoped<PPEConsumptionCalculator>();
 
 // CORS for React frontend
 builder.Services.AddCors(options =>
@@ -182,6 +184,14 @@ app.MapGet("/api/rooms", (LoccDbContext db) =>
         });
 
     return Results.Ok(rooms);
+});
+
+app.MapPost("/api/ppe/calculate",
+    (PPECalculatorRequestDto request,
+     PPEConsumptionCalculator calculator) =>
+{
+    var result = calculator.Calculate(request);
+    return Results.Ok(result);
 });
 
 app.Run();
