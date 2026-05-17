@@ -13,4 +13,8 @@ public class TaskDto
     public string OperationalArea { get; set; } = string.Empty;
 
     public DateTime? DueDateTime { get; set; }
+
+    public string? GeneratedFrom { get; set; }
+    
+    public string? DecisionRationale { get; set; }
 }

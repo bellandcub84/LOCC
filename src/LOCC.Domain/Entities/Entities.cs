@@ -148,23 +148,99 @@ namespace LOCC.Domain.Entities
         public Case? Case { get; set; }
     }
 
-    public class TaskAction
-    {
-        public Guid TaskId { get; set; }
-        public Guid OutbreakId { get; set; }
-        public LOCC.Domain.AIIMSFunction AIIMSFunction { get; set; }
-        public string? TaskCategory { get; set; }
-        public string TaskDescription { get; set; } = string.Empty;
-        public Guid? AssignedTo { get; set; }
-        public DateTime? DueDateTime { get; set; }
-        public LOCC.Domain.Priority Priority { get; set; }
-        public LOCC.Domain.TaskStatus Status { get; set; }
-        public DateTime? CompletionTime { get; set; }
-        public bool EvidenceRequired { get; set; }
-        public string? EvidenceUploaded { get; set; }
+public class TaskAction
+{
+    public Guid TaskId { get; set; }
 
-        public OutbreakEvent? OutbreakEvent { get; set; }
-    }
+    public Guid OutbreakId { get; set; }
+
+    public LOCC.Domain.AIIMSFunction AIIMSFunction { get; set; }
+
+    public string? TaskCategory { get; set; }
+
+    public string TaskDescription { get; set; } = string.Empty;
+
+    public Guid? AssignedTo { get; set; }
+
+    public DateTime? DueDateTime { get; set; }
+
+    public LOCC.Domain.Priority Priority { get; set; }
+
+    public LOCC.Domain.TaskStatus Status { get; set; }
+
+    public DateTime? CompletionTime { get; set; }
+
+    public bool EvidenceRequired { get; set; }
+
+    public string? EvidenceUploaded { get; set; }
+
+    // NEW: explainability + source tracking
+    public string? GeneratedFrom { get; set; }
+
+    public string? DecisionRationale { get; set; }
+
+    // FUTURE relationship placeholders
+    public Guid? RiskAssessmentId { get; set; }
+
+    public Guid? RecommendationId { get; set; }
+
+    // Navigation
+    public OutbreakEvent? OutbreakEvent { get; set; }
+
+    public RiskAssessment? RiskAssessment { get; set; }
+    
+    public Recommendation? Recommendation { get; set; }
+}
+
+public class RiskAssessment
+{
+    public Guid RiskAssessmentId { get; set; }
+    public Guid OutbreakId { get; set; }
+
+    public string SignalType { get; set; } = string.Empty;
+    public string SignalSummary { get; set; } = string.Empty;
+    public string IPCInterpretation { get; set; } = string.Empty;
+
+    public LOCC.Domain.Priority RiskLevel { get; set; }
+
+    public DateTime AssessedAt { get; set; }
+
+    public OutbreakEvent? OutbreakEvent { get; set; }
+}
+
+public class Recommendation
+{
+    public Guid RecommendationId { get; set; }
+    public Guid OutbreakId { get; set; }
+
+    public Guid? RiskAssessmentId { get; set; }
+
+    public string RecommendationText { get; set; } = string.Empty;
+    public string Rationale { get; set; } = string.Empty;
+    public string SourceRule { get; set; } = string.Empty;
+
+    public LOCC.Domain.Priority Priority { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public OutbreakEvent? OutbreakEvent { get; set; }
+    public RiskAssessment? RiskAssessment { get; set; }
+}
+
+public class Intervention
+{
+    public Guid InterventionId { get; set; }
+    public Guid OutbreakId { get; set; }
+
+    public Guid RecommendationId { get; set; }
+
+    public string InterventionType { get; set; } = string.Empty;
+    public string OperationalArea { get; set; } = string.Empty;
+    public string IntendedOutcome { get; set; } = string.Empty;
+
+    public OutbreakEvent? OutbreakEvent { get; set; }
+    public Recommendation? Recommendation { get; set; }
+}
 
     public class Resource
     {

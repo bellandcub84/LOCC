@@ -68,15 +68,17 @@ app.MapGet("/api/tasks", (LoccDbContext db) =>
 {
     var tasks = db.TaskActions
         .ToList()
-        .Select(task => new TaskDto
-        {
-            TaskId = task.TaskId,
-            TaskDescription = task.TaskDescription,
-            Priority = task.Priority.ToString(),
-            Status = TaskStatusLabelService.GetDisplayLabel(task.Status),
-            OperationalArea = AIIMSLabelService.GetOperationalLabel(task.AIIMSFunction),
-            DueDateTime = task.DueDateTime
-        });
+            .Select(task => new TaskDto
+            {
+                TaskId = task.TaskId,
+                TaskDescription = task.TaskDescription,
+                Priority = task.Priority.ToString(),
+                Status = TaskStatusLabelService.GetDisplayLabel(task.Status),
+                OperationalArea = AIIMSLabelService.GetOperationalLabel(task.AIIMSFunction),
+                DueDateTime = task.DueDateTime,
+                GeneratedFrom = task.GeneratedFrom,
+                DecisionRationale = task.DecisionRationale
+            });
 
     return Results.Ok(tasks);
 });
@@ -119,7 +121,9 @@ app.MapPatch("/api/tasks/{taskId:guid}/status", (Guid taskId, UpdateTaskStatusRe
         Priority = task.Priority.ToString(),
         Status = TaskStatusLabelService.GetDisplayLabel(task.Status),
         OperationalArea = AIIMSLabelService.GetOperationalLabel(task.AIIMSFunction),
-        DueDateTime = task.DueDateTime
+        DueDateTime = task.DueDateTime,
+        GeneratedFrom = task.GeneratedFrom,
+        DecisionRationale = task.DecisionRationale
     };
 
     return Results.Ok(updatedTask);

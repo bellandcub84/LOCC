@@ -362,6 +362,29 @@ function App() {
                       <strong>{task.taskDescription}</strong>
                       <p><strong>Priority:</strong> {style.label}</p>
                       <p><strong>Operational Area:</strong> {task.operationalArea}</p>
+                      <p><strong>Status:</strong> {task.status}</p>
+
+                      {task.generatedFrom && (
+                        <p style={{ fontSize: '12px', opacity: 0.75 }}>
+                          <strong>Generated From:</strong> {task.generatedFrom}
+                        </p>
+                      )}
+
+                      {task.decisionRationale && (
+                        <div
+                          style={{
+                            marginTop: '8px',
+                            padding: '8px',
+                            backgroundColor: '#f5f5f5',
+                            borderLeft: '4px solid #ccc',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                          }}
+                        >
+                          <strong>Why this matters:</strong>
+                          <div>{task.decisionRationale}</div>
+                        </div>
+                      )}
 
                       <TaskLifecycleUpdate
                         task={task}

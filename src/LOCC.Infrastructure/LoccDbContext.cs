@@ -17,7 +17,11 @@ namespace LOCC.Infrastructure
         public DbSet<SymptomRecord> SymptomRecords => Set<SymptomRecord>();
         public DbSet<TestRecord> TestRecords => Set<TestRecord>();
         public DbSet<TaskAction> TaskActions => Set<TaskAction>();
+        public DbSet<RiskAssessment> RiskAssessments => Set<RiskAssessment>();
+        public DbSet<Recommendation> Recommendations => Set<Recommendation>();
+        public DbSet<Intervention> Interventions => Set<Intervention>();
         public DbSet<Resource> Resources => Set<Resource>();
+
         public DbSet<Communication> Communications => Set<Communication>();
         public DbSet<RecoveryBAU> RecoveryBAUs => Set<RecoveryBAU>();
         public DbSet<Alert> Alerts => Set<Alert>();
@@ -50,6 +54,35 @@ namespace LOCC.Infrastructure
             modelBuilder.Entity<TestRecord>().HasKey(t => t.TestId);
 
             modelBuilder.Entity<TaskAction>().HasKey(t => t.TaskId);
+
+            modelBuilder.Entity<RiskAssessment>().HasKey(r => r.RiskAssessmentId);
+            modelBuilder.Entity<Recommendation>().HasKey(r => r.RecommendationId);
+            modelBuilder.Entity<Intervention>().HasKey(i => i.InterventionId);
+
+            modelBuilder.Entity<TaskAction>()
+                .HasOne(t => t.RiskAssessment)
+                .WithMany()
+                .HasForeignKey(t => t.RiskAssessmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TaskAction>()
+                .HasOne(t => t.Recommendation)
+                .WithMany()
+                .HasForeignKey(t => t.RecommendationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Recommendation>()
+                .HasOne(r => r.RiskAssessment)
+                .WithMany()
+                .HasForeignKey(r => r.RiskAssessmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Intervention>()
+                .HasOne(i => i.Recommendation)
+                .WithMany()
+                .HasForeignKey(i => i.RecommendationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Resource>().HasKey(r => r.ResourceId);
 
             modelBuilder.Entity<Communication>().HasKey(c => c.CommunicationId);

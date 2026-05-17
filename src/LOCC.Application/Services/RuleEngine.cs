@@ -90,16 +90,68 @@ namespace LOCC.Application.Services
             }
 
             // PPE resource warning
-            var lowResources = _db.Resources.Where(r => r.DaysRemaining <= r.ReorderThreshold).ToList();
-            foreach (var res in lowResources)
-            {
-                var alert = new Alert { AlertId = Guid.NewGuid(), Type = AlertType.PPEWarning, Message = $"Resource {res.ItemName} low: {res.DaysRemaining} days remaining.", CreatedAt = DateTime.UtcNow };
-                result.Alerts.Add(alert);
+            var lowResources = _db.Resources
+                .Where(r => r.ResourceType == ResourceType.PPE && r.DaysRemaining <= r.ReorderThreshold)
+                .ToList();
 
-                // Create reorder task
-                var task = new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = res.OutbreakId, AIIMSFunction = AIIMSFunction.Logistics, TaskDescription = $"Reorder {res.ItemName}", Priority = Priority.Critical, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddDays(1) };
-                result.Tasks.Add(task);
-            }
+                foreach (var res in lowResources)
+                {
+                    var alert = new Alert
+                    {
+                        AlertId = Guid.NewGuid(),
+                        Type = AlertType.PPEWarning,
+                        Message = $"Resource {res.ItemName} low: {res.DaysRemaining} days remaining.",
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    result.Alerts.Add(alert);
+
+                    var riskAssessment = new RiskAssessment
+                    {
+                        RiskAssessmentId = Guid.NewGuid(),
+                        OutbreakId = res.OutbreakId,
+                        SignalType = "PPE_THRESHOLD",
+                        SignalSummary = $"{res.ItemName} has {res.DaysRemaining} day(s) remaining.",
+                        IPCInterpretation = "Reduced PPE availability may compromise transmission-based precautions and increase outbreak control risk.",
+                        RiskLevel = Priority.Critical,
+                        AssessedAt = DateTime.UtcNow
+                    };
+
+                    _db.RiskAssessments.Add(riskAssessment);
+
+                    var recommendation = new Recommendation
+                    {
+                        RecommendationId = Guid.NewGuid(),
+                        OutbreakId = res.OutbreakId,
+                        RiskAssessmentId = riskAssessment.RiskAssessmentId,
+                        RecommendationText = $"Escalate PPE resupply for {res.ItemName}.",
+                        Rationale = "PPE supply is below operational safety threshold for outbreak response.",
+                        SourceRule = "PPEThresholdRule",
+                        Priority = Priority.Critical,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _db.Recommendations.Add(recommendation);
+
+                    var task = new TaskAction
+                    {
+                        TaskId = Guid.NewGuid(),
+                        OutbreakId = res.OutbreakId,
+                        AIIMSFunction = AIIMSFunction.Logistics,
+                        TaskCategory = "PPE & Supplies",
+                        TaskDescription = $"Review and escalate PPE resupply for {res.ItemName}.",
+                        Priority = Priority.Critical,
+                        Status = DomainTaskStatus.Pending,
+                        DueDateTime = DateTime.UtcNow.AddHours(4),
+                        EvidenceRequired = true,
+                        GeneratedFrom = "PPEThresholdRule",
+                        DecisionRationale = recommendation.Rationale,
+                        RiskAssessmentId = riskAssessment.RiskAssessmentId,
+                        RecommendationId = recommendation.RecommendationId
+                    };
+
+                    result.Tasks.Add(task);
+                }
 
             // Workforce risk: simple threshold 70% available
             var staff = _db.Staff.ToList();
