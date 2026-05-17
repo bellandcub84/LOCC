@@ -1,6 +1,29 @@
 import { useEffect, useState } from 'react'
 import TaskLifecycleUpdate from './components/TaskLifecycleUpdate'
 
+const safeFetchJson = async (url, fallback = null) => {
+  try {
+    const response = await fetch(url)
+
+    if (!response.ok) {
+      console.error(`API error: ${response.status}`)
+      return fallback
+    }
+
+    const contentType = response.headers.get('content-type')
+
+    if (!contentType?.includes('application/json')) {
+      console.error('Non-JSON response received')
+      return fallback
+    }
+
+    return await response.json()
+  } catch (err) {
+    console.error(`Fetch failed for ${url}`, err)
+    return fallback
+  }
+}
+
 const getPriorityStyle = (priority) => {
   switch (priority) {
     case 'Critical':
@@ -121,7 +144,7 @@ const groupRoomsByZone = (rooms) => {
 
 function App() {
   const [tasks, setTasks] = useState([])
-  const [summary, setSummary] = useState(null)
+  const [summary, setSummary] = useState({})
   const [resources, setResources] = useState([])
   const [zones, setZones] = useState([])
   const [surveillanceCases, setSurveillanceCases] = useState([])
@@ -133,6 +156,8 @@ function App() {
   const [rooms, setRooms] = useState([])
   const [ppeResult, setPpeResult] = useState(null)
   const [ppeLoading, setPpeLoading] = useState(false)
+  const [epidemiology, setEpidemiology] = useState({})
+
   const filteredSurveillanceCases = surveillanceCases.filter((c) => {
     const search = surveillanceSearch.toLowerCase()
 
@@ -145,51 +170,34 @@ function App() {
   })
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/tasks')
-      .then((res) => {
-        if (!res.ok) throw new Error(`Tasks API returned ${res.status}`)
-        return res.json()
-      })
-      .then((data) => {
-        setTasks(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        setError(err.message)
-        setLoading(false)
-      })
+  safeFetchJson('http://localhost:5000/api/tasks', [])
+    .then((data) => {
+      setTasks(data)
+      setLoading(false)
+    })
+    .catch((err) => {
+      setError(err.message)
+      setLoading(false)
+    })
 
-    fetch('http://localhost:5000/api/outbreak-summary')
-      .then((res) => {
-        if (!res.ok) throw new Error(`Summary API returned ${res.status}`)
-        return res.json()
-      })
-      .then((data) => setSummary(data))
-      .catch((err) => console.error('Summary fetch error:', err))
+  safeFetchJson('http://localhost:5000/api/outbreak-summary', null)
+    .then(setSummary)
 
-    fetch('http://localhost:5000/api/rooms')
-      .then((res) => {
-        if (!res.ok) throw new Error(`Rooms API returned ${res.status}`)
-        return res.json()
-      })
-      .then((data) => setRooms(data))
-      .catch((err) => console.error('Rooms fetch error:', err))
+  safeFetchJson('http://localhost:5000/api/rooms', [])
+    .then(setRooms)
 
-      fetch('http://localhost:5000/api/resources')
-      .then((res) => res.json())
-      .then((data) => setResources(data))
-      .catch((err) => console.error('Resources fetch error:', err))
+  safeFetchJson('http://localhost:5000/api/resources', [])
+    .then(setResources)
 
-    fetch('http://localhost:5000/api/zones')
-      .then((res) => res.json())
-      .then((data) => setZones(data))
-      .catch((err) => console.error('Zones fetch error:', err))
+  safeFetchJson('http://localhost:5000/api/zones', [])
+    .then(setZones)
 
-      fetch('http://localhost:5000/api/surveillance')
-      .then((res) => res.json())
-      .then((data) => setSurveillanceCases(data))
-      .catch((err) => console.error('Surveillance fetch error:', err))
-  }, [])
+  safeFetchJson('http://localhost:5000/api/surveillance', [])
+    .then(setSurveillanceCases)
+
+  safeFetchJson('http://localhost:5000/api/epidemiology/summary', null)
+    .then(setEpidemiology)
+}, [])
 
   const handleStatusUpdated = (updatedTask) => {
     setTasks((prevTasks) =>
@@ -213,55 +221,73 @@ function App() {
   }))
 }
 
+const updateZone = (facilityRoomId, updates) => {
+  setZones((prevZones) =>
+    prevZones.map((zone) =>
+      zone.facilityRoomId === facilityRoomId
+        ? { ...zone, ...updates }
+        : zone
+    )
+  )
+}
 
+  const calculatePpeForecast = async () => {
+  setPpeLoading(true)
 
-  const calculatePpeForecast = () => {
-    setPpeLoading(true)
+  const request = {
+    facilityName: 'LOCC Manor',
+    totalResidents: 100,
+    singleAssistResidents: 75,
+    twoPersonAssistResidents: 20,
+    threePlusPersonAssistResidents: 5,
+    contactDropletResidents: 10,
+    contactOnlyResidents: 5,
+    staffOnShift: 18,
+    visitorsPerDay: 12,
+    outbreakType: 'COVID-19',
+    contactDropletInterventions: {
+      regularNebulisers: 2,
+      prnNebulisers: 1,
+      regularOxygen: 3,
+      prnOxygen: 1,
+      cpapBipap: 2,
+      oralSuctioning: 1,
+      assistedFeeding: 6,
+    },
+    contactOnlyInterventions: {
+      regularNebulisers: 0,
+      prnNebulisers: 0,
+      regularOxygen: 0,
+      prnOxygen: 0,
+      cpapBipap: 0,
+      oralSuctioning: 0,
+      assistedFeeding: 4,
+    },
+  }
 
-    const request = {
-      facilityName: 'LOCC Manor',
-      totalResidents: 100,
-      singleAssistResidents: 75,
-      twoPersonAssistResidents: 20,
-      threePlusPersonAssistResidents: 5,
-      contactDropletResidents: 10,
-      contactOnlyResidents: 5,
-      staffOnShift: 18,
-      visitorsPerDay: 12,
-      outbreakType: 'COVID-19',
-      contactDropletInterventions: {
-        regularNebulisers: 2,
-        prnNebulisers: 1,
-        regularOxygen: 3,
-        prnOxygen: 1,
-        cpapBipap: 2,
-        oralSuctioning: 1,
-        assistedFeeding: 6,
-      },
-      contactOnlyInterventions: {
-        regularNebulisers: 0,
-        prnNebulisers: 0,
-        regularOxygen: 0,
-        prnOxygen: 0,
-        cpapBipap: 0,
-        oralSuctioning: 0,
-        assistedFeeding: 4,
-      },
+  try {
+    const response = await fetch(
+      'http://localhost:5000/api/ppe/calculate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`PPE API returned ${response.status}`)
     }
 
-    fetch('http://localhost:5000/api/ppe/calculate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`PPE API returned ${res.status}`)
-        return res.json()
-      })
-      .then((data) => setPpeResult(data))
-      .catch((err) => console.error('PPE calculation error:', err))
-      .finally(() => setPpeLoading(false))
+    const data = await response.json()
+    setPpeResult(data)
+  } catch (err) {
+    console.error('PPE calculation error:', err)
+    setPpeResult(null)
+  } finally {
+    setPpeLoading(false)
   }
+}
 
   const groupedTasks = groupTasksByOperationalArea(tasks)
   const priorityCounts = getPriorityCounts(tasks)
@@ -488,6 +514,80 @@ function App() {
         </table>
       </div>
     </section>
+
+    {epidemiology && (
+  <section
+    style={{
+      padding: '16px',
+      border: '2px solid #ddd',
+      borderRadius: '12px',
+      backgroundColor: '#fafafa',
+      marginBottom: '24px',
+    }}
+  >
+    <h2>Operational Epidemiology</h2>
+
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: '12px',
+        marginBottom: '16px',
+      }}
+    >
+      <div><strong>Total Cases</strong><div>{epidemiology.totalCases}</div></div>
+      <div><strong>Confirmed</strong><div>{epidemiology.confirmedCases}</div></div>
+      <div><strong>Suspected</strong><div>{epidemiology.suspectedCases}</div></div>
+      <div><strong>Residents</strong><div>{epidemiology.residentCases}</div></div>
+      <div><strong>Staff</strong><div>{epidemiology.staffCases}</div></div>
+      <div><strong>Hospitalisations</strong><div>{epidemiology.hospitalisations}</div></div>
+      <div><strong>Deaths</strong><div>{epidemiology.deaths}</div></div>
+    </div>
+
+    <h3>Epi Curve</h3>
+
+{(!epidemiology.casesByDate || epidemiology.casesByDate.length === 0) && (
+  <p>No symptom onset data available.</p>
+)}
+
+{(epidemiology.casesByDate || []).map((day) => (
+
+      <div key={day.date} style={{ marginBottom: '8px' }}>
+        <strong>{new Date(day.date).toLocaleDateString()}</strong>
+        <div
+          style={{
+            height: '18px',
+            width: `${Math.max(day.count * 40, 40)}px`,
+            backgroundColor: '#1976d2',
+            borderRadius: '4px',
+            color: 'white',
+            paddingLeft: '6px',
+            marginTop: '4px',
+          }}
+        >
+          {day.count}
+        </div>
+      </div>
+    ))}
+
+    <h3>Cases by Zone</h3>
+
+    {(epidemiology.casesByZone || []).map((zone) => (
+      <div
+        key={zone.zone}
+        style={{
+          padding: '8px',
+          borderBottom: '1px solid #ddd',
+        }}
+      >
+        <strong>{zone.zone}</strong>: {zone.count} case(s)
+        <div style={{ fontSize: '12px', opacity: 0.8 }}>
+          Confirmed: {zone.confirmed} | Suspected: {zone.suspected}
+        </div>
+      </div>
+    ))}
+  </section>
+)}
 
       <section>
         <h2>Priority Summary</h2>

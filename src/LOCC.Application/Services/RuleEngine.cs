@@ -313,8 +313,6 @@ foreach (var outbreakCase in outbreakCases)
     }
 
     string displayName = "Unknown";
-    DateTime? dob = null;
-    string? sex = null;
 
     if (outbreakCase.PersonType == PersonType.Resident)
     {

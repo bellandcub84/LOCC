@@ -291,6 +291,72 @@ app.MapGet("/api/exports/{jurisdiction}/surveillance", (
     );
 });
 
+app.MapGet("/api/epidemiology/summary", (LoccDbContext db) =>
+{
+    var cases = db.SurveillanceCases.ToList();
+
+    var totalCases = cases.Count;
+    var confirmedCases = cases.Count(c => c.CaseStatus == "Confirmed");
+    var suspectedCases = cases.Count(c => c.CaseStatus == "Suspected");
+
+    var residentCases = cases.Count(c => c.PersonType == "Resident");
+    var staffCases = cases.Count(c => c.PersonType == "Staff");
+
+    var hospitalisations = cases.Count(c => c.HospitalTransferred);
+    var deaths = cases.Count(c => c.Deceased);
+
+    var earliestOnset = cases
+        .Where(c => c.SymptomOnsetDate.HasValue)
+        .OrderBy(c => c.SymptomOnsetDate)
+        .Select(c => c.SymptomOnsetDate)
+        .FirstOrDefault();
+
+    var latestOnset = cases
+        .Where(c => c.SymptomOnsetDate.HasValue)
+        .OrderByDescending(c => c.SymptomOnsetDate)
+        .Select(c => c.SymptomOnsetDate)
+        .FirstOrDefault();
+
+    var casesByDate = cases
+        .Where(c => c.SymptomOnsetDate.HasValue)
+        .GroupBy(c => c.SymptomOnsetDate!.Value.Date)
+        .OrderBy(g => g.Key)
+        .Select(g => new
+        {
+            date = g.Key,
+            count = g.Count(),
+            confirmed = g.Count(c => c.CaseStatus == "Confirmed"),
+            suspected = g.Count(c => c.CaseStatus == "Suspected")
+        });
+
+    var casesByZone = cases
+        .Where(c => !string.IsNullOrWhiteSpace(c.Zone))
+        .GroupBy(c => c.Zone)
+        .Select(g => new
+        {
+            zone = g.Key,
+            count = g.Count(),
+            confirmed = g.Count(c => c.CaseStatus == "Confirmed"),
+            suspected = g.Count(c => c.CaseStatus == "Suspected")
+        })
+        .OrderByDescending(z => z.count);
+
+    return Results.Ok(new
+    {
+        totalCases,
+        confirmedCases,
+        suspectedCases,
+        residentCases,
+        staffCases,
+        hospitalisations,
+        deaths,
+        earliestOnset,
+        latestOnset,
+        casesByDate,
+        casesByZone
+    });
+});
+
 app.MapGet("/api/resources", (LoccDbContext db) =>
 {
     var resources = db.Resources
