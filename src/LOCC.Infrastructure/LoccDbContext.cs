@@ -46,6 +46,7 @@ namespace LOCC.Infrastructure
             modelBuilder.Entity<Resident>().HasKey(r => r.ResidentId);
             modelBuilder.Entity<Staff>().HasKey(s => s.StaffId);
             modelBuilder.Entity<Location>().HasKey(l => l.LocationId);
+            modelBuilder.Entity<FacilityRoom>().HasKey(r => r.FacilityRoomId);
 
             modelBuilder.Entity<OutbreakEvent>().HasKey(o => o.OutbreakId);
             modelBuilder.Entity<Case>().HasKey(c => c.CaseId);

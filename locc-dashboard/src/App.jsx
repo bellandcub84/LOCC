@@ -125,6 +125,7 @@ function App() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [collapsedAreas, setCollapsedAreas] = useState({})
+  const [expandedRationale, setExpandedRationale] = useState({})
   const [rooms, setRooms] = useState([])
   const [ppeResult, setPpeResult] = useState(null)
   const [ppeLoading, setPpeLoading] = useState(false)
@@ -175,6 +176,13 @@ function App() {
       [area]: !prev[area],
     }))
   }
+
+  const toggleRationale = (taskId) => {
+  setExpandedRationale((prev) => ({
+    ...prev,
+    [taskId]: !prev[taskId],
+  }))
+}
 
   const calculatePpeForecast = () => {
     setPpeLoading(true)
@@ -363,6 +371,46 @@ function App() {
                       <p><strong>Priority:</strong> {style.label}</p>
                       <p><strong>Operational Area:</strong> {task.operationalArea}</p>
                       <p><strong>Status:</strong> {task.status}</p>
+                    <div
+
+                    style={{
+                      display: 'flex',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                      marginTop: '8px',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    {task.generatedFrom && (
+                      <span
+                        style={{
+                          backgroundColor: '#fff3e0',
+                          color: '#e65100',
+                          padding: '4px 8px',
+                          borderRadius: '999px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        ⚠ Risk Linked
+                      </span>
+                    )}
+
+                    {task.decisionRationale && (
+                      <span
+                        style={{
+                          backgroundColor: '#e8f5e9',
+                          color: '#1b5e20',
+                          padding: '4px 8px',
+                          borderRadius: '999px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        💡 Recommendation Generated
+                      </span>
+                    )}
+                  </div>
 
                       {task.generatedFrom && (
                         <p style={{ fontSize: '12px', opacity: 0.75 }}>
@@ -371,18 +419,39 @@ function App() {
                       )}
 
                       {task.decisionRationale && (
-                        <div
-                          style={{
-                            marginTop: '8px',
-                            padding: '8px',
-                            backgroundColor: '#f5f5f5',
-                            borderLeft: '4px solid #ccc',
-                            borderRadius: '4px',
-                            fontSize: '13px',
-                          }}
-                        >
-                          <strong>Why this matters:</strong>
-                          <div>{task.decisionRationale}</div>
+                        <div style={{ marginTop: '8px' }}>
+                          <button
+                            onClick={() => toggleRationale(task.taskId)}
+                            style={{
+                              border: 'none',
+                              background: 'none',
+                              color: '#1976d2',
+                              cursor: 'pointer',
+                              padding: 0,
+                              fontSize: '13px',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            {expandedRationale[task.taskId]
+                              ? 'Hide operational rationale'
+                              : 'View operational rationale'}
+                          </button>
+
+                          {expandedRationale[task.taskId] && (
+                            <div
+                              style={{
+                                marginTop: '8px',
+                                padding: '8px',
+                                backgroundColor: '#f5f5f5',
+                                borderLeft: '4px solid #ccc',
+                                borderRadius: '4px',
+                                fontSize: '13px',
+                              }}
+                            >
+                              <strong>Why this matters:</strong>
+                              <div>{task.decisionRationale}</div>
+                            </div>
+                          )}
                         </div>
                       )}
 

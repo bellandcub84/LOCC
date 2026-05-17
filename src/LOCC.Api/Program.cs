@@ -162,7 +162,22 @@ app.MapGet("/api/outbreak-summary", (LoccDbContext db) =>
 
 app.MapGet("/api/resources", (LoccDbContext db) =>
 {
-    return Results.Ok(db.Resources.ToList());
+    var resources = db.Resources
+        .ToList()
+        .Select(r => new ResourceDto
+        {
+            ResourceId = r.ResourceId,
+            ItemName = r.ItemName,
+            ResourceType = r.ResourceType.ToString(),
+            DaysRemaining = r.DaysRemaining,
+            ReorderThreshold = r.ReorderThreshold,
+            CurrentStockLevel = r.CurrentStockLevel,
+            DailyUsageRate = r.DailyUsageRate,
+            MinimumSafeStockLevel = r.MinimumSafeStockLevel,
+            ProjectedDaysRemaining = r.ProjectedDaysRemaining
+        });
+
+    return Results.Ok(resources);
 });
 
 app.MapGet("/api/recovery", (LoccDbContext db) =>

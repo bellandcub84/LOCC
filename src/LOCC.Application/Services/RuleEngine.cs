@@ -55,11 +55,27 @@ namespace LOCC.Application.Services
                     result.Alerts.Add(alert);
 
                     // Auto-generate AIIMS task bundle
-                    var tasks = GenerateInitialAIIMSTasks(_db.OutbreakEvents.First());
+                    var outbreak = _db.OutbreakEvents
+                        .OrderBy(o => o.OutbreakId)
+                        .FirstOrDefault();
+
+                    if (outbreak == null)
+                    {
+                        return result;
+                    }
+
+                    var tasks = GenerateInitialAIIMSTasks(outbreak);
                     result.Tasks.AddRange(tasks);
 
                  // Create RecoveryBAU record if not exists
-                    var ob = _db.OutbreakEvents.First();
+                    var ob = _db.OutbreakEvents
+                        .OrderBy(o => o.OutbreakId)
+                        .FirstOrDefault();
+
+                    if (ob == null)
+                    {
+                        return result;
+                    }
 
                     var existingRecovery = _db.RecoveryBAUs
                         .AsNoTracking()
@@ -91,8 +107,17 @@ namespace LOCC.Application.Services
 
             // PPE resource warning
             var lowResources = _db.Resources
-                .Where(r => r.ResourceType == ResourceType.PPE && r.DaysRemaining <= r.ReorderThreshold)
+                .Where(r => r.ResourceType == ResourceType.PPE && r.ProjectedDaysRemaining <= r.ReorderThreshold)
                 .ToList();
+
+                foreach (var res in _db.Resources)
+                {
+                    if (res.DailyUsageRate > 0)
+                    {
+                        res.ProjectedDaysRemaining =
+                            (int)Math.Floor(res.CurrentStockLevel / res.DailyUsageRate);
+                    }
+                }
 
                 foreach (var res in lowResources)
                 {
@@ -162,8 +187,25 @@ namespace LOCC.Application.Services
                 var alert = new Alert { AlertId = Guid.NewGuid(), Type = AlertType.StaffingWarning, Message = $"Staff availability low: {availPercent:0.#}% available.", CreatedAt = DateTime.UtcNow };
                 result.Alerts.Add(alert);
 
-                var task = new TaskAction { TaskId = Guid.NewGuid(), OutbreakId = _db.OutbreakEvents.First().OutbreakId, AIIMSFunction = AIIMSFunction.Operations, TaskDescription = "Plan agency/backfill staffing", Priority = Priority.High, Status = DomainTaskStatus.Pending, DueDateTime = DateTime.UtcNow.AddDays(1) };
-                result.Tasks.Add(task);
+                var outbreak = _db.OutbreakEvents
+                    .OrderBy(o => o.OutbreakId)
+                    .FirstOrDefault();
+
+                if (outbreak == null)
+                {
+                    return result;
+                }
+
+                var task = new TaskAction
+                {
+                    TaskId = Guid.NewGuid(),
+                    OutbreakId = outbreak.OutbreakId,
+                    AIIMSFunction = AIIMSFunction.Operations,
+                    TaskDescription = "Plan agency/backfill staffing",
+                    Priority = Priority.High,
+                    Status = DomainTaskStatus.Pending,
+                    DueDateTime = DateTime.UtcNow.AddDays(1)
+                };
             }
 
             // Person-centred IPC: resident isolated >48h and high distress
@@ -181,6 +223,77 @@ namespace LOCC.Application.Services
                 }
             }
 
+            // Environmental zoning escalation
+            var confirmedCases = _db.Cases
+                .Where(c => c.CaseStatus == CaseStatus.Confirmed)
+                .ToList();
+
+            foreach (var confirmedCase in confirmedCases)
+            {
+                if (string.IsNullOrWhiteSpace(confirmedCase.LikelyExposureZone))
+                {
+                    continue;
+                }
+
+                var affectedRooms = _db.FacilityRooms
+                    .Where(r => r.RoomName == confirmedCase.LikelyExposureZone)
+                    .ToList();
+
+                foreach (var room in affectedRooms)
+                {
+                    room.RiskZoneStatus = RiskZoneStatus.Red;
+                    room.EnhancedPrecautionsRequired = true;
+                    room.TerminalCleanRequired = true;
+                    room.LastExposureDate = DateTime.UtcNow;
+
+                    var riskAssessment = new RiskAssessment
+                    {
+                        RiskAssessmentId = Guid.NewGuid(),
+                        OutbreakId = confirmedCase.OutbreakId,
+                        SignalType = "ENVIRONMENTAL_EXPOSURE",
+                        SignalSummary = $"Confirmed outbreak exposure linked to room {room.RoomName}.",
+                        IPCInterpretation = "Environmental contamination risk may contribute to transmission escalation.",
+                        RiskLevel = Priority.High,
+                        AssessedAt = DateTime.UtcNow
+                    };
+
+                    _db.RiskAssessments.Add(riskAssessment);
+
+                    var recommendation = new Recommendation
+                    {
+                        RecommendationId = Guid.NewGuid(),
+                        OutbreakId = confirmedCase.OutbreakId,
+                        RiskAssessmentId = riskAssessment.RiskAssessmentId,
+                        RecommendationText = $"Initiate enhanced environmental precautions for {room.RoomName}.",
+                        Rationale = "Confirmed outbreak exposure requires environmental IPC escalation and terminal cleaning.",
+                        SourceRule = "EnvironmentalExposureRule",
+                        Priority = Priority.High,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _db.Recommendations.Add(recommendation);
+
+                    var task = new TaskAction
+                    {
+                        TaskId = Guid.NewGuid(),
+                        OutbreakId = confirmedCase.OutbreakId,
+                        AIIMSFunction = AIIMSFunction.Operations,
+                        TaskCategory = "Environmental Controls",
+                        TaskDescription = $"Perform terminal clean and enhanced precautions for {room.RoomName}.",
+                        Priority = Priority.High,
+                        Status = DomainTaskStatus.Pending,
+                        DueDateTime = DateTime.UtcNow.AddHours(6),
+                        EvidenceRequired = true,
+                        GeneratedFrom = "EnvironmentalExposureRule",
+                        DecisionRationale = recommendation.Rationale,
+                        RiskAssessmentId = riskAssessment.RiskAssessmentId,
+                        RecommendationId = recommendation.RecommendationId
+                    };
+
+                    result.Tasks.Add(task);
+                }
+            }
+
             // Persist alerts and tasks
             foreach (var a in result.Alerts)
             {
@@ -189,14 +302,49 @@ namespace LOCC.Application.Services
             }
             foreach (var t in result.Tasks)
             {
+                var duplicateActiveTaskExists = _db.TaskActions.Any(existing =>
+                    existing.OutbreakId == t.OutbreakId &&
+                    existing.TaskDescription == t.TaskDescription &&
+                    existing.AIIMSFunction == t.AIIMSFunction &&
+                    existing.GeneratedFrom == t.GeneratedFrom &&
+                    existing.Status != DomainTaskStatus.Completed &&
+                    existing.Status != DomainTaskStatus.Cancelled);
+
+                if (duplicateActiveTaskExists)
+                {
+                    continue;
+                }
+
                 _db.TaskActions.Add(t);
-                _db.AuditLogs.Add(new AuditLog { AuditLogId = Guid.NewGuid(), Timestamp = DateTime.UtcNow, Action = "RuleGeneratedTask", Actor = "RuleEngine", Details = t.TaskDescription });
+
+                _db.AuditLogs.Add(new AuditLog
+                {
+                    AuditLogId = Guid.NewGuid(),
+                    Timestamp = DateTime.UtcNow,
+                    Action = "RuleGeneratedTask",
+                    Actor = "RuleEngine",
+                    Details = t.TaskDescription
+                });
             }
 
-            if (result.Recovery != null)
+            if (result.Recovery != null && result.Recovery.RecoveryId != Guid.Empty)
             {
-                _db.RecoveryBAUs.Add(result.Recovery);
-                _db.AuditLogs.Add(new AuditLog { AuditLogId = Guid.NewGuid(), Timestamp = DateTime.UtcNow, Action = "RuleCreatedRecovery", Actor = "RuleEngine", Details = "Initial recovery record created" });
+                var recoveryAlreadyExists = _db.RecoveryBAUs
+                    .Any(r => r.OutbreakId == result.Recovery.OutbreakId);
+
+                if (!recoveryAlreadyExists)
+                {
+                    _db.RecoveryBAUs.Add(result.Recovery);
+
+                    _db.AuditLogs.Add(new AuditLog
+                    {
+                        AuditLogId = Guid.NewGuid(),
+                        Timestamp = DateTime.UtcNow,
+                        Action = "RuleCreatedRecovery",
+                        Actor = "RuleEngine",
+                        Details = "Initial recovery record created"
+                    });
+                }
             }
 
             _db.SaveChanges();

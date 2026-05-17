@@ -253,7 +253,10 @@ public class Intervention
         public int DaysRemaining { get; set; }
         public int ReorderThreshold { get; set; }
         public string? Status { get; set; }
-
+        public double DailyUsageRate { get; set; }
+        public int CurrentStockLevel { get; set; }
+        public int MinimumSafeStockLevel { get; set; }
+        public int ProjectedDaysRemaining { get; set; }
         public OutbreakEvent? OutbreakEvent { get; set; }
     }
 
@@ -342,5 +345,15 @@ public class Intervention
         public bool IsClosed { get; set; }
 
         public string Notes { get; set; } = "";
+
+        public RiskZoneStatus RiskZoneStatus { get; set; }
+
+        public DateTime? LastExposureDate { get; set; }
+
+        public bool EnhancedPrecautionsRequired { get; set; }
+
+        public bool TerminalCleanRequired { get; set; }
+
+        public string? ZoningNotes { get; set; }
     }
 }
