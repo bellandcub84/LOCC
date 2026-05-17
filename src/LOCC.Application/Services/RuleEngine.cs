@@ -294,6 +294,92 @@ namespace LOCC.Application.Services
                 }
             }
 
+// Surveillance line listing generation
+var outbreakCases = _db.Cases.ToList();
+
+foreach (var outbreakCase in outbreakCases)
+{
+    var existingSurveillanceCase = _db.SurveillanceCases
+        .FirstOrDefault(s =>
+            s.OutbreakId == outbreakCase.OutbreakId &&
+            (
+                (outbreakCase.PersonType == PersonType.Resident && s.ResidentId == outbreakCase.PersonId) ||
+                (outbreakCase.PersonType == PersonType.Staff && s.StaffId == outbreakCase.PersonId)
+            ));
+
+    if (existingSurveillanceCase != null)
+    {
+        continue;
+    }
+
+    string displayName = "Unknown";
+    DateTime? dob = null;
+    string? sex = null;
+
+    if (outbreakCase.PersonType == PersonType.Resident)
+    {
+        var resident = _db.Residents
+            .FirstOrDefault(r => r.ResidentId == outbreakCase.PersonId);
+
+        if (resident != null)
+        {
+            displayName = $"{resident.FirstName} {resident.LastName}";
+        }
+    }
+
+    if (outbreakCase.PersonType == PersonType.Staff)
+    {
+        var staffMember = _db.Staff
+    .FirstOrDefault(s => s.StaffId == outbreakCase.PersonId);
+        if (staffMember != null)
+        {
+            displayName = $"{staffMember.FirstName} {staffMember.LastName}";
+        }
+    }
+
+    var latestTest = _db.TestRecords
+        .Where(t => t.CaseId == outbreakCase.CaseId)
+        .OrderByDescending(t => t.TestDate)
+        .FirstOrDefault();
+
+    var surveillanceCase = new SurveillanceCase
+    {
+        SurveillanceCaseId = Guid.NewGuid(),
+        OutbreakId = outbreakCase.OutbreakId,
+
+        PersonType = outbreakCase.PersonType.ToString(),
+
+        ResidentId = outbreakCase.PersonType == PersonType.Resident
+            ? outbreakCase.PersonId
+            : null,
+
+        StaffId = outbreakCase.PersonType == PersonType.Staff
+            ? outbreakCase.PersonId
+            : null,
+
+        DisplayName = displayName,
+
+        RoomName = outbreakCase.LikelyExposureZone,
+        Zone = outbreakCase.LikelyExposureZone,
+
+        CaseStatus = outbreakCase.CaseStatus.ToString(),
+        Pathogen = "Respiratory Outbreak",
+
+        SymptomOnsetDate = outbreakCase.OnsetDate,
+
+        TestType = latestTest?.TestType.ToString(),
+        TestDate = latestTest?.TestDate,
+        TestResult = latestTest?.Result.ToString(),
+
+        IsolationStartDate = outbreakCase.IsolationStartDate,
+
+        Jurisdiction = "WA",
+        PublicHealthNotificationStatus = "Pending"
+    };
+
+    _db.SurveillanceCases.Add(surveillanceCase);
+}
+
             // Persist alerts and tasks
             foreach (var a in result.Alerts)
             {

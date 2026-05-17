@@ -124,6 +124,8 @@ function App() {
   const [summary, setSummary] = useState(null)
   const [resources, setResources] = useState([])
   const [zones, setZones] = useState([])
+  const [surveillanceCases, setSurveillanceCases] = useState([])
+  const [surveillanceSearch, setSurveillanceSearch] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [collapsedAreas, setCollapsedAreas] = useState({})
@@ -131,6 +133,16 @@ function App() {
   const [rooms, setRooms] = useState([])
   const [ppeResult, setPpeResult] = useState(null)
   const [ppeLoading, setPpeLoading] = useState(false)
+  const filteredSurveillanceCases = surveillanceCases.filter((c) => {
+    const search = surveillanceSearch.toLowerCase()
+
+    return (
+      c.displayName?.toLowerCase().includes(search) ||
+      c.roomName?.toLowerCase().includes(search) ||
+      c.caseStatus?.toLowerCase().includes(search) ||
+      c.personType?.toLowerCase().includes(search)
+    )
+  })
 
   useEffect(() => {
     fetch('http://localhost:5000/api/tasks')
@@ -172,6 +184,11 @@ function App() {
       .then((res) => res.json())
       .then((data) => setZones(data))
       .catch((err) => console.error('Zones fetch error:', err))
+
+      fetch('http://localhost:5000/api/surveillance')
+      .then((res) => res.json())
+      .then((data) => setSurveillanceCases(data))
+      .catch((err) => console.error('Surveillance fetch error:', err))
   }, [])
 
   const handleStatusUpdated = (updatedTask) => {
@@ -196,36 +213,7 @@ function App() {
   }))
 }
 
-const updateZone = async (roomId, updates) => {
-  try {
-    const response = await fetch(
-      `http://localhost:5000/api/zones/${roomId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      }
-    )
 
-    if (!response.ok) {
-      throw new Error('Failed to update room')
-    }
-
-    const updatedZone = await response.json()
-
-    setZones((prev) =>
-      prev.map((zone) =>
-        zone.facilityRoomId === updatedZone.facilityRoomId
-          ? updatedZone
-          : zone
-      )
-    )
-  } catch (err) {
-    console.error('Zone update error:', err)
-  }
-}
 
   const calculatePpeForecast = () => {
     setPpeLoading(true)
@@ -414,6 +402,92 @@ const updateZone = async (roomId, updates) => {
       ))}
     </section>
   </div>
+
+    <section
+      style={{
+        padding: '16px',
+        border: '2px solid #ddd',
+        borderRadius: '12px',
+        backgroundColor: '#fafafa',
+        marginBottom: '24px',
+      }}
+    >
+      <h2>Surveillance & Line Listing</h2>
+
+      <input
+        type="text"
+        placeholder="Search resident, staff, room, or case status..."
+        value={surveillanceSearch}
+        onChange={(e) => setSurveillanceSearch(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '10px',
+          marginBottom: '16px',
+          borderRadius: '8px',
+          border: '1px solid #ccc',
+        }}
+      />
+
+      <div style={{ overflowX: 'auto' }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+          }}
+        >
+          <thead>
+            <tr style={{ backgroundColor: '#f0f0f0' }}>
+              <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
+              <th style={{ padding: '10px', textAlign: 'left' }}>Type</th>
+              <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
+              <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
+              <th style={{ padding: '10px', textAlign: 'left' }}>Test</th>
+              <th style={{ padding: '10px', textAlign: 'left' }}>Onset</th>
+              <th style={{ padding: '10px', textAlign: 'left' }}>Notification</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredSurveillanceCases.map((c) => (
+              <tr
+                key={c.surveillanceCaseId}
+                style={{
+                  borderBottom: '1px solid #ddd',
+                  backgroundColor:
+                    c.caseStatus === 'Confirmed'
+                      ? '#ffe5e5'
+                      : c.caseStatus === 'Suspected'
+                      ? '#fff3e0'
+                      : '#fff',
+                }}
+              >
+                <td style={{ padding: '10px' }}>{c.displayName}</td>
+
+                <td style={{ padding: '10px' }}>{c.personType}</td>
+
+                <td style={{ padding: '10px' }}>{c.roomName}</td>
+
+                <td style={{ padding: '10px' }}>{c.caseStatus}</td>
+
+                <td style={{ padding: '10px' }}>
+                  {c.testResult || 'Pending'}
+                </td>
+
+                <td style={{ padding: '10px' }}>
+                  {c.symptomOnsetDate
+                    ? new Date(c.symptomOnsetDate).toLocaleDateString()
+                    : '-'}
+                </td>
+
+                <td style={{ padding: '10px' }}>
+                  {c.publicHealthNotificationStatus}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
 
       <section>
         <h2>Priority Summary</h2>

@@ -99,6 +99,49 @@ namespace LOCC.Domain.Entities
         public RecoveryBAU? RecoveryBAU { get; set; }
     }
 
+    public class SurveillanceCase
+{
+    public Guid SurveillanceCaseId { get; set; }
+    public Guid OutbreakId { get; set; }
+
+    public string PersonType { get; set; } = string.Empty;
+
+    public Guid? ResidentId { get; set; }
+    public Guid? StaffId { get; set; }
+
+    public string DisplayName { get; set; } = string.Empty;
+
+    public string? RoomName { get; set; }
+    public string? Zone { get; set; }
+
+    public string CaseStatus { get; set; } = string.Empty;
+    public string? Pathogen { get; set; }
+
+    public DateTime? SymptomOnsetDate { get; set; }
+    public string? Symptoms { get; set; }
+
+    public string? TestType { get; set; }
+    public DateTime? TestDate { get; set; }
+    public string? TestResult { get; set; }
+
+    public string? VaccinationStatus { get; set; }
+    public string? AntiviralStatus { get; set; }
+
+    public bool HospitalTransferred { get; set; }
+    public bool Deceased { get; set; }
+
+    public DateTime? IsolationStartDate { get; set; }
+    public DateTime? IsolationEndDate { get; set; }
+    public DateTime? RecoveryDate { get; set; }
+
+    public string? Jurisdiction { get; set; }
+    public string? PublicHealthNotificationStatus { get; set; }
+
+    public string? Notes { get; set; }
+
+    public OutbreakEvent? OutbreakEvent { get; set; }
+}
+
     public class Case
     {
         public Guid CaseId { get; set; }

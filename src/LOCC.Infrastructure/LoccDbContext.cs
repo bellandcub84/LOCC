@@ -21,13 +21,13 @@ namespace LOCC.Infrastructure
         public DbSet<Recommendation> Recommendations => Set<Recommendation>();
         public DbSet<Intervention> Interventions => Set<Intervention>();
         public DbSet<Resource> Resources => Set<Resource>();
-
         public DbSet<Communication> Communications => Set<Communication>();
         public DbSet<RecoveryBAU> RecoveryBAUs => Set<RecoveryBAU>();
         public DbSet<Alert> Alerts => Set<Alert>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<EvidenceSource> EvidenceSources => Set<EvidenceSource>();
         public DbSet<FacilityRoom> FacilityRooms => Set<FacilityRoom>();
+        public DbSet<SurveillanceCase> SurveillanceCases => Set<SurveillanceCase>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -50,7 +50,7 @@ namespace LOCC.Infrastructure
 
             modelBuilder.Entity<OutbreakEvent>().HasKey(o => o.OutbreakId);
             modelBuilder.Entity<Case>().HasKey(c => c.CaseId);
-
+            modelBuilder.Entity<SurveillanceCase>().HasKey(s => s.SurveillanceCaseId);
             modelBuilder.Entity<SymptomRecord>().HasKey(s => s.SymptomId);
             modelBuilder.Entity<TestRecord>().HasKey(t => t.TestId);
 

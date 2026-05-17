@@ -237,6 +237,33 @@ app.MapGet("/api/outbreak-summary", (LoccDbContext db) =>
     });
 });
 
+app.MapGet("/api/surveillance", (LoccDbContext db) =>
+{
+    var cases = db.SurveillanceCases
+        .ToList()
+        .Select(c => new
+        {
+            c.SurveillanceCaseId,
+            c.DisplayName,
+            c.PersonType,
+            c.RoomName,
+            c.Zone,
+            c.CaseStatus,
+            c.Pathogen,
+            c.SymptomOnsetDate,
+            c.TestType,
+            c.TestDate,
+            c.TestResult,
+            c.IsolationStartDate,
+            c.HospitalTransferred,
+            c.Deceased,
+            c.PublicHealthNotificationStatus,
+            c.Jurisdiction
+        });
+
+    return Results.Ok(cases);
+});
+
 app.MapGet("/api/resources", (LoccDbContext db) =>
 {
     var resources = db.Resources
