@@ -15,6 +15,7 @@ builder.Services.AddDbContext<LoccDbContext>(options =>
 // Application services
 builder.Services.AddScoped<RuleEngine>();
 builder.Services.AddScoped<PPEConsumptionCalculator>();
+builder.Services.AddScoped<JurisdictionExportService>();
 
 // CORS for React frontend
 builder.Services.AddCors(options =>
@@ -264,6 +265,32 @@ app.MapGet("/api/surveillance", (LoccDbContext db) =>
     return Results.Ok(cases);
 });
 
+app.MapGet("/api/exports/{jurisdiction}/surveillance", (
+    string jurisdiction,
+    LoccDbContext db,
+    JurisdictionExportService exportService) =>
+{
+    var cases = db.SurveillanceCases
+        .Where(c => c.Jurisdiction == jurisdiction.ToUpper())
+        .ToList();
+
+    if (!cases.Any())
+    {
+        cases = db.SurveillanceCases.ToList();
+    }
+
+    var csv = exportService.ExportSurveillanceCasesToCsv(cases, jurisdiction);
+
+    var fileName =
+        $"LOCC_{jurisdiction.ToUpper()}_Surveillance_Line_List_{DateTime.UtcNow:yyyyMMdd}.csv";
+
+    return Results.File(
+        System.Text.Encoding.UTF8.GetBytes(csv),
+        "text/csv",
+        fileName
+    );
+});
+
 app.MapGet("/api/resources", (LoccDbContext db) =>
 {
     var resources = db.Resources
@@ -291,8 +318,6 @@ app.MapGet("/api/recovery", (LoccDbContext db) =>
 
 app.MapGet("/api/rooms", (LoccDbContext db) =>
 {
-   app.MapGet("/api/zones", (LoccDbContext db) =>
-{
     var rooms = db.FacilityRooms
         .ToList()
         .Select(room => new
@@ -310,11 +335,9 @@ app.MapGet("/api/rooms", (LoccDbContext db) =>
 
     return Results.Ok(rooms);
 });
-});
 
 app.MapPost("/api/ppe/calculate",
-    (PPECalculatorRequestDto request,
-     PPEConsumptionCalculator calculator) =>
+    (PPECalculatorRequestDto request, PPEConsumptionCalculator calculator) =>
 {
     var result = calculator.Calculate(request);
     return Results.Ok(result);

@@ -26,6 +26,7 @@ namespace LOCC.Domain
     public enum RecoveryPhase { Stage1_ActiveControl, Stage2_Stabilising, Stage3_ControlledReopening, Stage4_ReturnToBAU, Stage5_Closed }
     public enum ClinicalConcernLevel { Low, Moderate, High }
     public enum RoomRiskLevel {  Low, Moderate, High, Critical }
-    public enum RiskZoneStatus {Green, Amber, Red, Cohort, Isolation }
+    public enum RiskZoneStatus { Green, Amber, Red, Cohort, Isolation }
+    public enum JurisdictionType { WA, NSW, VIC, QLD, SA, TAS, ACT, NT }
        
     }
