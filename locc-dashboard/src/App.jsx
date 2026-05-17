@@ -196,6 +196,37 @@ function App() {
   }))
 }
 
+const updateZone = async (roomId, updates) => {
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/zones/${roomId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to update room')
+    }
+
+    const updatedZone = await response.json()
+
+    setZones((prev) =>
+      prev.map((zone) =>
+        zone.facilityRoomId === updatedZone.facilityRoomId
+          ? updatedZone
+          : zone
+      )
+    )
+  } catch (err) {
+    console.error('Zone update error:', err)
+  }
+}
+
   const calculatePpeForecast = () => {
     setPpeLoading(true)
 
@@ -439,6 +470,58 @@ function App() {
             }}
           >
             <strong>{zone.roomName}</strong>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginTop: '10px',
+                marginBottom: '10px',
+              }}
+            >
+              <select
+                value={zone.riskLevel}
+                onChange={(e) =>
+                  updateZone(zone.facilityRoomId, {
+                    riskLevel: e.target.value,
+                  })
+                }
+              >
+                <option value="Low">Low</option>
+                <option value="Moderate">Moderate</option>
+                <option value="High">High</option>
+              </select>
+
+              <button
+                onClick={() =>
+                  updateZone(zone.facilityRoomId, {
+                    isClosed: !zone.isClosed,
+                  })
+                }
+              >
+                {zone.isClosed ? 'Reopen Room' : 'Close Room'}
+              </button>
+
+              <button
+                onClick={() =>
+                  updateZone(zone.facilityRoomId, {
+                    isIsolationRoom: !zone.isIsolationRoom,
+                  })
+                }
+              >
+                {zone.isIsolationRoom ? 'Remove Isolation' : 'Assign Isolation'}
+              </button>
+
+              <button
+                onClick={() =>
+                  updateZone(zone.facilityRoomId, {
+                    terminalCleanCompleted: true,
+                  })
+                }
+              >
+                Acknowledge Cleaning
+              </button>
+            </div>
 
             <p>
               <strong>Zone:</strong> {zone.zone}

@@ -77,6 +77,65 @@ app.MapGet("/api/zones", (LoccDbContext db) =>
     return Results.Ok(zones);
 });
 
+app.MapPatch("/api/zones/{roomId:int}", (int roomId, UpdateZoneRoomRequest request, LoccDbContext db) =>
+{
+    var room = db.FacilityRooms.FirstOrDefault(r => r.FacilityRoomId == roomId);
+
+    if (room == null)
+    {
+        return Results.NotFound(new { message = "Room not found" });
+    }
+
+    if (!string.IsNullOrWhiteSpace(request.RiskLevel))
+    {
+        if (!Enum.TryParse<LOCC.Domain.RoomRiskLevel>(request.RiskLevel, true, out var riskLevel))
+        {
+            return Results.BadRequest(new { message = $"Invalid risk level: {request.RiskLevel}" });
+        }
+
+        room.RiskLevel = riskLevel;
+    }
+
+    if (request.IsClosed.HasValue)
+    {
+        room.IsClosed = request.IsClosed.Value;
+    }
+
+    if (request.IsIsolationRoom.HasValue)
+    {
+        room.IsIsolationRoom = request.IsIsolationRoom.Value;
+    }
+
+    if (request.TerminalCleanCompleted == true)
+    {
+        room.HasConfirmedCase = false;
+        room.HasSuspectedCase = false;
+        room.IsClosed = false;
+        room.RiskLevel = LOCC.Domain.RoomRiskLevel.Low;
+        room.Notes = "Terminal clean completed. Room returned to low risk.";
+    }
+
+    if (!string.IsNullOrWhiteSpace(request.Notes))
+    {
+        room.Notes = request.Notes;
+    }
+
+    db.SaveChanges();
+
+    return Results.Ok(new
+    {
+        room.FacilityRoomId,
+        room.RoomName,
+        room.Zone,
+        riskLevel = room.RiskLevel.ToString(),
+        room.IsIsolationRoom,
+        room.HasConfirmedCase,
+        room.HasSuspectedCase,
+        room.IsClosed,
+        room.Notes
+    });
+});
+
 app.MapGet("/api/outbreaks", (LoccDbContext db) =>
 {
     return Results.Ok(db.OutbreakEvents.ToList());
