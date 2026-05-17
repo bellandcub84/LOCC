@@ -122,6 +122,8 @@ const groupRoomsByZone = (rooms) => {
 function App() {
   const [tasks, setTasks] = useState([])
   const [summary, setSummary] = useState(null)
+  const [resources, setResources] = useState([])
+  const [zones, setZones] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [collapsedAreas, setCollapsedAreas] = useState({})
@@ -160,6 +162,16 @@ function App() {
       })
       .then((data) => setRooms(data))
       .catch((err) => console.error('Rooms fetch error:', err))
+
+      fetch('http://localhost:5000/api/resources')
+      .then((res) => res.json())
+      .then((data) => setResources(data))
+      .catch((err) => console.error('Resources fetch error:', err))
+
+    fetch('http://localhost:5000/api/zones')
+      .then((res) => res.json())
+      .then((data) => setZones(data))
+      .catch((err) => console.error('Zones fetch error:', err))
   }, [])
 
   const handleStatusUpdated = (updatedTask) => {
@@ -293,6 +305,85 @@ function App() {
         </section>
       )}
 
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '16px',
+    marginBottom: '24px',
+  }}
+>
+  <section
+    style={{
+      padding: '16px',
+      border: '2px solid #ddd',
+      borderRadius: '12px',
+      backgroundColor: '#fafafa',
+    }}
+  >
+    <h2>PPE Sustainability</h2>
+
+    {resources.length === 0 && <p>No PPE resource data available.</p>}
+
+    {resources.map((resource) => (
+      <div
+        key={resource.resourceId}
+        style={{
+          padding: '10px',
+          marginBottom: '8px',
+          borderRadius: '8px',
+          border: '1px solid #ddd',
+          backgroundColor:
+            resource.projectedDaysRemaining <= resource.reorderThreshold
+              ? '#ffe5e5'
+              : '#e8f5e9',
+        }}
+      >
+        <strong>{resource.itemName}</strong>
+        <p>Current stock: {resource.currentStockLevel}</p>
+        <p>Daily usage: {resource.dailyUsageRate}</p>
+        <p>Projected days remaining: {resource.projectedDaysRemaining}</p>
+      </div>
+    ))}
+  </section>
+
+    <section
+      style={{
+        padding: '16px',
+        border: '2px solid #ddd',
+        borderRadius: '12px',
+        backgroundColor: '#fafafa',
+      }}
+    >
+      <h2>Environmental Risk Zones</h2>
+
+      {zones.length === 0 && <p>No zoning data available.</p>}
+
+      {zones.map((zone) => (
+        <div
+          key={zone.roomId}
+          style={{
+            padding: '10px',
+            marginBottom: '8px',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            backgroundColor:
+              zone.riskZoneStatus === 'Red'
+                ? '#ffe5e5'
+                : zone.riskZoneStatus === 'Amber'
+                ? '#fff3e0'
+                : '#e8f5e9',
+          }}
+        >
+          <strong>{zone.roomName}</strong>
+          <p>Risk zone: {zone.riskZoneStatus}</p>
+          {zone.enhancedPrecautionsRequired && <p>⚠ Enhanced precautions required</p>}
+          {zone.terminalCleanRequired && <p>🧼 Terminal clean required</p>}
+        </div>
+      ))}
+    </section>
+  </div>
+
       <section>
         <h2>Priority Summary</h2>
         {Object.entries(priorityCounts).map(([priority, count]) => {
@@ -319,24 +410,74 @@ function App() {
         })}
       </section>
 
-      <section>
+      <section
+        style={{
+          padding: '16px',
+          border: '2px solid #ddd',
+          borderRadius: '12px',
+          backgroundColor: '#fafafa',
+        }}
+      >
         <h2>Environmental Risk Zones</h2>
 
-        {Object.entries(groupedRooms).map(([zone, zoneRooms]) => (
-          <div key={zone}>
-            <h3>{zone}</h3>
+        {zones.length === 0 && <p>No zoning data available.</p>}
 
-            {zoneRooms.map((room) => {
-              const style = getRoomRiskStyle(room.riskLevel)
+        {zones.map((zone) => (
+          <div
+            key={zone.facilityRoomId}
+            style={{
+              padding: '10px',
+              marginBottom: '8px',
+              borderRadius: '8px',
+              border: '1px solid #ddd',
+              backgroundColor:
+                zone.riskLevel === 'High'
+                  ? '#ffe5e5'
+                  : zone.riskLevel === 'Moderate'
+                  ? '#fff3e0'
+                  : '#e8f5e9',
+            }}
+          >
+            <strong>{zone.roomName}</strong>
 
-              return (
-                <div key={room.facilityRoomId} style={{ border: `2px solid ${style.border}`, backgroundColor: style.background, padding: '12px', marginBottom: '8px' }}>
-                  <strong>{room.roomName}</strong>
-                  <p><strong>Risk:</strong> {style.label}</p>
-                  {room.notes && <p>{room.notes}</p>}
-                </div>
-              )
-            })}
+            <p>
+              <strong>Zone:</strong> {zone.zone}
+            </p>
+
+            <p>
+              <strong>Risk Level:</strong> {zone.riskLevel}
+            </p>
+
+            {zone.hasConfirmedCase && (
+              <p>🔴 Confirmed outbreak-associated case</p>
+            )}
+
+            {zone.hasSuspectedCase && (
+              <p>🟠 Suspected outbreak-associated case</p>
+            )}
+
+            {zone.isIsolationRoom && (
+              <p>🛏 Isolation-capable room</p>
+            )}
+
+            {zone.isClosed && (
+              <p>⛔ Area closed</p>
+            )}
+
+            {zone.notes && (
+              <div
+                style={{
+                  marginTop: '8px',
+                  padding: '8px',
+                  backgroundColor: '#f5f5f5',
+                  borderLeft: '4px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                }}
+              >
+                {zone.notes}
+              </div>
+            )}
           </div>
         ))}
       </section>

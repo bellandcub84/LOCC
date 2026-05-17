@@ -59,6 +59,24 @@ app.MapPost("/api/rules/evaluate", (RuleEngine ruleEngine) =>
     });
 });
 
+app.MapGet("/api/zones", (LoccDbContext db) =>
+{
+    var zones = db.FacilityRooms
+        .ToList()
+        .Select(room => new
+        {
+            roomId = room.FacilityRoomId,
+            roomName = room.RoomName,
+            riskZoneStatus = room.RiskZoneStatus.ToString(),
+            enhancedPrecautionsRequired = room.EnhancedPrecautionsRequired,
+            terminalCleanRequired = room.TerminalCleanRequired,
+            lastExposureDate = room.LastExposureDate,
+            zoningNotes = room.ZoningNotes
+        });
+
+    return Results.Ok(zones);
+});
+
 app.MapGet("/api/outbreaks", (LoccDbContext db) =>
 {
     return Results.Ok(db.OutbreakEvents.ToList());
@@ -187,6 +205,8 @@ app.MapGet("/api/recovery", (LoccDbContext db) =>
 
 app.MapGet("/api/rooms", (LoccDbContext db) =>
 {
+   app.MapGet("/api/zones", (LoccDbContext db) =>
+{
     var rooms = db.FacilityRooms
         .ToList()
         .Select(room => new
@@ -203,6 +223,7 @@ app.MapGet("/api/rooms", (LoccDbContext db) =>
         });
 
     return Results.Ok(rooms);
+});
 });
 
 app.MapPost("/api/ppe/calculate",
