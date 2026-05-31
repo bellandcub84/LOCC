@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import TaskLifecycleUpdate from './components/TaskLifecycleUpdate'
+import DashboardShell from './components/layout/DashboardShell'
+import TopCommandBar from './components/layout/TopCommandBar'
+import OperationalEpidemiologyPanel from './components/panels/OperationalEpidemiologyPanel'
 
 const safeFetchJson = async (url, fallback = null) => {
   try {
@@ -295,7 +298,7 @@ const updateZone = (facilityRoomId, updates) => {
   const groupedRooms = groupRoomsByZone(rooms)
 
   return (
-    <div style={{ padding: '24px', fontFamily: 'Arial' }}>
+    <DashboardShell>
       <h1>LOCC Incident Controller Dashboard</h1>
 
       <section style={{ marginBottom: '24px', padding: '16px', border: '2px solid #ddd', borderRadius: '12px', backgroundColor: '#f8fbff' }}>
@@ -341,14 +344,7 @@ const updateZone = (facilityRoomId, updates) => {
         )}
       </section>
 
-      {summary && (
-        <section style={{ marginBottom: '24px' }}>
-          <h2>Outbreak Summary</h2>
-          <p><strong>Pathogen:</strong> {summary.pathogen}</p>
-          <p><strong>Outbreak Phase:</strong> {summary.outbreakPhase}</p>
-          <p><strong>Active Cases:</strong> {summary.activeCases}</p>
-        </section>
-      )}
+<TopCommandBar summary={summary} />
 
 <div
   style={{
@@ -864,7 +860,7 @@ const updateZone = (facilityRoomId, updates) => {
           ))}
         </>
       )}
-    </div>
+    </DashboardShell>
   )
 }
 
