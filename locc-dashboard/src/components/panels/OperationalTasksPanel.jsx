@@ -1,5 +1,9 @@
 import TaskLifecycleUpdate from '../TaskLifecycleUpdate'
-import { panelStyle, typography, statusColors } from '../../styles/theme'
+import {
+  panelStyle,
+  typography,
+  statusColors,
+} from '../../styles/theme'
 
 const getPriorityStyle = (priority) => {
   switch (priority) {

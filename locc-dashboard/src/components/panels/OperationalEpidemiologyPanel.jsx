@@ -1,4 +1,5 @@
 import {
+  colors,
   panelStyle,
   metricCardStyle,
   typography,

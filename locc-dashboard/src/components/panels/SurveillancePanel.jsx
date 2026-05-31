@@ -1,4 +1,8 @@
-import { panelStyle, typography } from '../../styles/theme'
+import {
+  panelStyle,
+  typography,
+  statusColors,
+} from '../../styles/theme'
 
 const SurveillancePanel = ({
   surveillanceCases,

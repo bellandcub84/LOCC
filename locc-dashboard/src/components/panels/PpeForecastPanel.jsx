@@ -1,5 +1,9 @@
 import { useState } from 'react'
-import { panelStyle, typography } from '../../styles/theme'
+import {
+  panelStyle,
+  typography,
+  statusColors,
+} from '../../styles/theme'
 
 const PpeForecastPanel = () => {
   const [ppeResult, setPpeResult] = useState(null)

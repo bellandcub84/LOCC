@@ -1,4 +1,8 @@
-import { panelStyle, typography, statusColors } from '../../styles/theme'
+import {
+  panelStyle,
+  typography,
+  statusColors,
+} from '../../styles/theme'
 
 const getZoneStyle = (riskLevel) => {
   switch ((riskLevel || '').toLowerCase()) {

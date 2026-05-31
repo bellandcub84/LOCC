@@ -136,51 +136,61 @@ function App() {
   }
 
   return (
-    <DashboardShell>
-      <h1>LOCC Incident Controller Dashboard</h1>
+<DashboardShell>
+  <h1>LOCC Incident Controller Dashboard</h1>
 
-      {loading && <p>Loading dashboard data from LOCC API...</p>}
+  {loading && <p>Loading dashboard data from LOCC API...</p>}
 
-      {error && (
-        <div style={{ padding: 12, border: '1px solid red', color: 'red' }}>
-          API connection error: {error}
+  {error && (
+    <div style={{ padding: 12, border: '1px solid red', color: 'red' }}>
+      API connection error: {error}
+    </div>
+  )}
+
+  {!loading && !error && (
+    <>
+      <TopCommandBar summary={summary} resources={resources} />
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1.1fr) minmax(360px, 0.9fr)',
+          gap: '24px',
+          alignItems: 'start',
+        }}
+      >
+        <div>
+          <OperationalEpidemiologyPanel epidemiology={epidemiology} />
+
+          <SurveillancePanel
+            surveillanceCases={surveillanceCases}
+            surveillanceSearch={surveillanceSearch}
+            setSurveillanceSearch={setSurveillanceSearch}
+          />
         </div>
-      )}
 
-{!loading && !error && (
-  <>
-    <TopCommandBar summary={summary ?? null} />
+        <div>
+          <EnvironmentalZonesPanel
+            rooms={rooms}
+            zones={zones}
+            updateZone={updateZone}
+          />
 
-    {epidemiology && (
-      <OperationalEpidemiologyPanel epidemiology={epidemiology} />
-    )}
+          <PpeForecastPanel />
+        </div>
+      </div>
 
-    <SurveillancePanel
-      surveillanceCases={Array.isArray(surveillanceCases) ? surveillanceCases : []}
-      surveillanceSearch={surveillanceSearch}
-      setSurveillanceSearch={setSurveillanceSearch}
-    />
-
-    <PpeForecastPanel />
-
-    <EnvironmentalZonesPanel
-      rooms={Array.isArray(rooms) ? rooms : []}
-      zones={Array.isArray(zones) ? zones : []}
-      updateZone={updateZone}
-    />
-
-    <OperationalTasksPanel
-      tasks={Array.isArray(tasks) ? tasks : []}
-      collapsedAreas={collapsedAreas}
-      toggleArea={toggleArea}
-      expandedRationale={expandedRationale}
-      toggleRationale={toggleRationale}
-      onStatusUpdated={handleStatusUpdated}
-    />
-  </>
-)}
-
-    </DashboardShell>
+      <OperationalTasksPanel
+        tasks={tasks}
+        collapsedAreas={collapsedAreas}
+        toggleArea={toggleArea}
+        expandedRationale={expandedRationale}
+        toggleRationale={toggleRationale}
+        onStatusUpdated={handleStatusUpdated}
+      />
+    </>
+  )}
+</DashboardShell>
   )
 }
 
