@@ -57,11 +57,11 @@ function TaskLifecycleUpdate({ task, onStatusUpdated }) {
   return (
     <div
       style={{
-        marginTop: '10px',
+        marginTop: '12px',
         padding: '10px',
-        border: `2px solid ${currentStyle.border}`,
-        backgroundColor: currentStyle.background,
-        borderRadius: '8px',
+        backgroundColor: '#F7F5F2',
+        borderRadius: '10px',
+        border: '1px solid #ddd',
       }}
     >
       <label>
