@@ -6,6 +6,7 @@ using LOCC.Application.Services;
 using LOCC.Application.DTOs;
 using LOCC.Domain;
 using LOCC.Application.Calculators.PPE;
+using LOCC.Application.Capabilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,7 @@ builder.Services.AddDbContext<LoccDbContext>(options =>
 // Application services
 builder.Services.AddScoped<RuleEngine>();
 builder.Services.AddScoped<OperationalHealthCalculator>();
+builder.Services.AddScoped<EmergingRiskCalculator>();
 builder.Services.AddScoped<PPEConsumptionCalculator>();
 builder.Services.AddScoped<JurisdictionExportService>();
 
@@ -482,6 +484,17 @@ app.MapGet("/api/operational-health", (OperationalHealthCalculator calculator) =
 {
     var result = calculator.Calculate();
     return Results.Ok(result);
+});
+
+app.MapGet("/api/emerging-risks", (EmergingRiskCalculator calculator) =>
+{
+    var risks = calculator.Calculate();
+    return Results.Ok(risks);
+});
+
+app.MapGet("/api/capabilities", () =>
+{
+    return Results.Ok(CapabilityRegistry.All);
 });
 
 app.Run();
