@@ -1,36 +1,9 @@
-const getHealthStyle = (status) => {
-  switch ((status || '').toLowerCase()) {
-    case 'under pressure':
-      return {
-        label: '🟠 Under pressure',
-        background: '#fff3e0',
-        border: '#ff9800',
-      }
-    case 'monitor':
-      return {
-        label: '🟡 Monitor',
-        background: '#fffde7',
-        border: '#fbc02d',
-      }
-    case 'stable':
-      return {
-        label: '🟢 Stable',
-        background: '#e8f5e9',
-        border: '#4caf50',
-      }
-    default:
-      return {
-        label: status || 'Not available',
-        background: '#f5f5f5',
-        border: '#ccc',
-      }
-  }
-}
+import { getOperationalStatusStyle } from '../../styles/operationalStatus'
 
 function OperationalHealthPanel({ operationalHealth }) {
   if (!operationalHealth) return null
 
-  const style = getHealthStyle(operationalHealth.overallStatus)
+  const style =getOperationalStatusStyle( operationalHealth.overallStatus)
 
   return (
     <section
@@ -75,7 +48,7 @@ function OperationalHealthPanel({ operationalHealth }) {
             }}
           >
             {operationalHealth.dimensions.map((dimension) => {
-              const dimensionStyle = getHealthStyle(dimension.status)
+              const dimensionStyle = getOperationalStatusStyle(dimension.status)
 
               return (
                 <div

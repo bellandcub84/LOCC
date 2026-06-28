@@ -1,38 +1,4 @@
-const getSituationStyle = (severity) => {
-  switch ((severity || '').toLowerCase()) {
-    case 'critical':
-      return {
-        label: '🔴 Critical',
-        background: '#ffe5e5',
-        border: '#ff4d4d',
-      }
-    case 'actionrequired':
-    case 'action required':
-      return {
-        label: '🟠 Action required',
-        background: '#fff3e0',
-        border: '#ff9800',
-      }
-    case 'monitor':
-      return {
-        label: '🟡 Monitor',
-        background: '#fffde7',
-        border: '#fbc02d',
-      }
-    case 'information':
-      return {
-        label: '🔵 Information',
-        background: '#e3f2fd',
-        border: '#64b5f6',
-      }
-    default:
-      return {
-        label: severity || 'Update',
-        background: '#f5f5f5',
-        border: '#ccc',
-      }
-  }
-}
+import { getOperationalStatusStyle } from '../../styles/operationalStatus'
 
 function SituationAwarenessPanel({ situationAwareness }) {
   if (!Array.isArray(situationAwareness) || situationAwareness.length === 0) {
@@ -52,7 +18,7 @@ function SituationAwarenessPanel({ situationAwareness }) {
       <h2 style={{ marginTop: 0 }}>What has changed?</h2>
 
       {situationAwareness.map((item) => {
-        const style = getSituationStyle(item.severity)
+        const style = getOperationalStatusStyle(item.severity)
 
         return (
           <div
