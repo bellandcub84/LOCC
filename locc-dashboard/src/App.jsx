@@ -7,6 +7,8 @@ import SurveillancePanel from './components/panels/SurveillancePanel'
 import EnvironmentalZonesPanel from './components/panels/EnvironmentalZonesPanel'
 import PpeForecastPanel from './components/panels/PpeForecastPanel'
 import OperationalTasksPanel from './components/panels/OperationalTasksPanel'
+import OperationalHealthPanel from './components/panels/OperationalHealthPanel'
+import SituationAwarenessPanel from './components/panels/SituationAwarenessPanel'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -36,6 +38,8 @@ const fetchJson = async (endpoint, fallback) => {
 function App() {
   const [tasks, setTasks] = useState([])
   const [summary, setSummary] = useState(null)
+  const [operationalHealth, setOperationalHealth] = useState(null)
+  const [situationAwareness, setSituationAwareness] = useState([])
   const [rooms, setRooms] = useState([])
   const [resources, setResources] = useState([])
   const [zones, setZones] = useState([])
@@ -57,28 +61,37 @@ function App() {
         setLoading(true)
         setError('')
 
-        const [
-          tasksData,
-          summaryData,
-          roomsData,
-          resourcesData,
-          zonesData,
-          surveillanceData,
-          epidemiologyData,
-        ] = await Promise.all([
-          fetchJson('/api/tasks', []),
-          fetchJson('/api/outbreak-summary', null),
-          fetchJson('/api/rooms', []),
-          fetchJson('/api/resources', []),
-          fetchJson('/api/zones', []),
-          fetchJson('/api/surveillance', []),
-          fetchJson('/api/epidemiology/summary', null),
-        ])
+    const [
+      tasksData,
+      summaryData,
+      operationalHealthData,
+      situationAwarenessData,
+      roomsData,
+      resourcesData,
+      zonesData,
+      surveillanceData,
+      epidemiologyData,
+    ] = await Promise.all([
+      fetchJson('/api/tasks', []),
+      fetchJson('/api/outbreak-summary', null),
+      fetchJson('/api/operational-health', null),
+      fetchJson('/api/situation-awareness', []),
+      fetchJson('/api/rooms', []),
+      fetchJson('/api/resources', []),
+      fetchJson('/api/zones', []),
+      fetchJson('/api/surveillance', []),
+      fetchJson('/api/epidemiology/summary', null),
+    ])
 
         if (!isMounted) return
 
         setTasks(Array.isArray(tasksData) ? tasksData : [])
         setSummary(summaryData)
+        setOperationalHealth(operationalHealthData)
+        setSituationAwareness(
+          Array.isArray(situationAwarenessData) ? situationAwarenessData : []
+        )
+
         setRooms(Array.isArray(roomsData) ? roomsData : [])
         setResources(Array.isArray(resourcesData) ? resourcesData : [])
         setZones(Array.isArray(zonesData) ? zonesData : [])
@@ -158,6 +171,8 @@ const updateZone = (facilityRoomId, updatedRoom) => {
   {!loading && !error && (
     <>
       <TopCommandBar summary={summary} resources={resources} />
+      <OperationalHealthPanel operationalHealth={operationalHealth} />
+      <SituationAwarenessPanel situationAwareness={situationAwareness} />
 
       <div
         style={{
