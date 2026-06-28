@@ -1,6 +1,7 @@
-# LOCC - Live Outbreak Command Centre (MVP)
+# Live Operational Context & Coordination (LOCC) />
+ (MVP)
 
-This repository contains the MVP scaffold for LOCC — an AIIMS-aligned outbreak and recovery command system for Australian residential aged care facilities.
+This repository contains the MVP scaffold for LOCC — an operations command system for Australian residential aged care facilities and home care providers.
 
 This initial commit contains:
 - Domain models for facilities, residents, staff, locations, outbreaks, cases, tests, tasks, resources, communications, recovery and evidence models.
