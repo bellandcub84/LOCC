@@ -398,5 +398,41 @@ public class Intervention
         public bool TerminalCleanRequired { get; set; }
 
         public string? ZoningNotes { get; set; }
+
+        public string? CohortStatus { get; set; }
+
+        public DateTime? CohortAssignedAt { get; set; }
+        
+        public string? CohortRationale { get; set; }
     }
+
+public class SituationAwarenessItem
+{
+    public int SituationAwarenessItemId { get; set; }
+
+    public int? OutbreakId { get; set; }
+
+    public string Title { get; set; } = string.Empty;
+
+    public string Summary { get; set; } = string.Empty;
+
+    public SituationAwarenessCategory Category { get; set; }
+
+    public SituationAwarenessSeverity Severity { get; set; }
+
+    public SituationAwarenessStatus Status { get; set; }
+
+    public string? SourceType { get; set; }
+
+    public string? SourceReference { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? ReviewedAt { get; set; }
+
+    public string? RecommendedAction { get; set; }
+
+    public string? Interpretation { get; set; }
+}
+
 }

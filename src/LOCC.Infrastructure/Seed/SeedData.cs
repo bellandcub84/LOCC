@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
-using LOCC.Domain.Entities;
 using LOCC.Domain;
+using LOCC.Domain.Entities;
 
 namespace LOCC.Infrastructure.Seed
 {
@@ -9,7 +9,7 @@ namespace LOCC.Infrastructure.Seed
     {
         public static void EnsureSeedData(LoccDbContext context)
         {
-            if (context.Facilities.Any()) return; // already seeded
+            if (context.Facilities.Any()) return;
 
             var facility = new Facility
             {
@@ -106,108 +106,128 @@ namespace LOCC.Infrastructure.Seed
 
             context.Cases.AddRange(c1, c2);
 
-            var t1 = new TestRecord
-            {
-                TestId = Guid.NewGuid(),
-                CaseId = c1.CaseId,
-                TestType = "RAT",
-                TestDate = DateTime.UtcNow.AddHours(-6),
-                PathogenTested = "SARS-CoV-2",
-                Result = TestResult.Positive,
-                ResultDate = DateTime.UtcNow.AddHours(-5),
-                EnteredBy = "Nurse A"
-            };
+            context.TestRecords.AddRange(
+                new TestRecord
+                {
+                    TestId = Guid.NewGuid(),
+                    CaseId = c1.CaseId,
+                    TestType = "RAT",
+                    TestDate = DateTime.UtcNow.AddHours(-6),
+                    PathogenTested = "SARS-CoV-2",
+                    Result = TestResult.Positive,
+                    ResultDate = DateTime.UtcNow.AddHours(-5),
+                    EnteredBy = "Nurse A"
+                },
+                new TestRecord
+                {
+                    TestId = Guid.NewGuid(),
+                    CaseId = c2.CaseId,
+                    TestType = "RAT",
+                    TestDate = DateTime.UtcNow.AddHours(-4),
+                    PathogenTested = "SARS-CoV-2",
+                    Result = TestResult.Pending,
+                    EnteredBy = "Nurse B"
+                }
+            );
 
-            var t2 = new TestRecord
-            {
-                TestId = Guid.NewGuid(),
-                CaseId = c2.CaseId,
-                TestType = "RAT",
-                TestDate = DateTime.UtcNow.AddHours(-4),
-                PathogenTested = "SARS-CoV-2",
-                Result = TestResult.Pending,
-                EnteredBy = "Nurse B"
-            };
+            context.Resources.AddRange(
+                new Resource
+                {
+                    ResourceId = Guid.NewGuid(),
+                    OutbreakId = outbreak.OutbreakId,
+                    ResourceType = ResourceType.PPE,
+                    ItemName = "N95 Masks",
+                    CurrentStock = 30,
+                    DailyBurnRate = 10,
+                    DaysRemaining = 3,
+                    ReorderThreshold = 5,
+                    Status = "InUse"
+                },
+                new Resource
+                {
+                    ResourceId = Guid.NewGuid(),
+                    OutbreakId = outbreak.OutbreakId,
+                    ResourceType = ResourceType.PPE,
+                    ItemName = "Gowns",
+                    CurrentStock = 10,
+                    DailyBurnRate = 5,
+                    DaysRemaining = 2,
+                    ReorderThreshold = 3,
+                    Status = "InUse"
+                }
+            );
 
-            context.TestRecords.AddRange(t1, t2);
+            context.AuditLogs.Add(
+                new AuditLog
+                {
+                    AuditLogId = Guid.NewGuid(),
+                    Timestamp = DateTime.UtcNow,
+                    Action = "OutbreakSeeded",
+                    Actor = "system",
+                    Details = "Seeded outbreak with two suspected resident cases in East wing"
+                }
+            );
 
-            var rPPE1 = new Resource
-            {
-                ResourceId = Guid.NewGuid(),
-                OutbreakId = outbreak.OutbreakId,
-                ResourceType = ResourceType.PPE,
-                ItemName = "N95 Masks",
-                CurrentStock = 30,
-                DailyBurnRate = 10,
-                DaysRemaining = 3,
-                ReorderThreshold = 5,
-                Status = "InUse"
-            };
+            context.EvidenceSources.Add(
+                new EvidenceSource
+                {
+                    EvidenceSourceId = Guid.NewGuid(),
+                    Title = "CDNA outbreak definitions - placeholder",
+                    SourceType = "Guideline",
+                    Citation = "CDNA",
+                    Jurisdiction = "AU",
+                    AppliesToModule = "OutbreakDeclaration"
+                }
+            );
 
-            var rPPE2 = new Resource
-            {
-                ResourceId = Guid.NewGuid(),
-                OutbreakId = outbreak.OutbreakId,
-                ResourceType = ResourceType.PPE,
-                ItemName = "Gowns",
-                CurrentStock = 10,
-                DailyBurnRate = 5,
-                DaysRemaining = 2,
-                ReorderThreshold = 3,
-                Status = "InUse"
-            };
+            context.FacilityRooms.AddRange(
+                new FacilityRoom
+                {
+                    RoomName = "Room 101",
+                    Zone = "North Wing",
+                    RiskLevel = RoomRiskLevel.Critical,
+                    HasConfirmedCase = true,
+                    IsIsolationRoom = true
+                },
+                new FacilityRoom
+                {
+                    RoomName = "Room 102",
+                    Zone = "North Wing",
+                    RiskLevel = RoomRiskLevel.High,
+                    HasSuspectedCase = true
+                },
+                new FacilityRoom
+                {
+                    RoomName = "Room 201",
+                    Zone = "South Wing",
+                    RiskLevel = RoomRiskLevel.Low
+                }
+            );
 
-            context.Resources.AddRange(rPPE1, rPPE2);
-
-            var audit = new AuditLog
-            {
-                AuditLogId = Guid.NewGuid(),
-                Timestamp = DateTime.UtcNow,
-                Action = "OutbreakSeeded",
-                Actor = "system",
-                Details = "Seeded outbreak with two suspected resident cases in East wing"
-            };
-
-            context.AuditLogs.Add(audit);
-
-            var ev = new EvidenceSource
-            {
-                EvidenceSourceId = Guid.NewGuid(),
-                Title = "CDNA outbreak definitions - placeholder",
-                SourceType = "Guideline",
-                Citation = "CDNA",
-                Jurisdiction = "AU",
-                AppliesToModule = "OutbreakDeclaration"
-            };
-
-            context.EvidenceSources.Add(ev);
-
-            if (!context.FacilityRooms.Any())
-            {
-                context.FacilityRooms.AddRange(
-                    new FacilityRoom
-                    {
-                        RoomName = "Room 101",
-                        Zone = "North Wing",
-                        RiskLevel = RoomRiskLevel.Critical,
-                        HasConfirmedCase = true,
-                        IsIsolationRoom = true
-                    },
-                    new FacilityRoom
-                    {
-                        RoomName = "Room 102",
-                        Zone = "North Wing",
-                        RiskLevel = RoomRiskLevel.High,
-                        HasSuspectedCase = true
-                    },
-                    new FacilityRoom
-                    {
-                        RoomName = "Room 201",
-                        Zone = "South Wing",
-                        RiskLevel = RoomRiskLevel.Low
-                    }
-                );
-            }
+            context.SituationAwarenessItems.AddRange(
+                new SituationAwarenessItem
+                {
+                    Title = "Important work is blocked",
+                    Summary = "A critical task has been marked as blocked.",
+                    Category = SituationAwarenessCategory.TaskRisk,
+                    Severity = SituationAwarenessSeverity.ActionRequired,
+                    Status = SituationAwarenessStatus.New,
+                    SourceType = "Task",
+                    Interpretation = "Important work is stuck and may need support.",
+                    RecommendedAction = "Review the blocked task and decide who can unblock it."
+                },
+                new SituationAwarenessItem
+                {
+                    Title = "PPE supplies need monitoring",
+                    Summary = "Some PPE items may run low soon.",
+                    Category = SituationAwarenessCategory.ResourcePressure,
+                    Severity = SituationAwarenessSeverity.Monitor,
+                    Status = SituationAwarenessStatus.New,
+                    SourceType = "Resource",
+                    Interpretation = "Supplies may not last as long as planned.",
+                    RecommendedAction = "Review current stock and expected use."
+                }
+            );
 
             context.SaveChanges();
         }

@@ -28,6 +28,7 @@ namespace LOCC.Infrastructure
         public DbSet<EvidenceSource> EvidenceSources => Set<EvidenceSource>();
         public DbSet<FacilityRoom> FacilityRooms => Set<FacilityRoom>();
         public DbSet<SurveillanceCase> SurveillanceCases => Set<SurveillanceCase>();
+        public DbSet<SituationAwarenessItem> SituationAwarenessItems => Set<SituationAwarenessItem>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

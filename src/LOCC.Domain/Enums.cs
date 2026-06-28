@@ -28,5 +28,7 @@ namespace LOCC.Domain
     public enum RoomRiskLevel {  Low, Moderate, High, Critical }
     public enum RiskZoneStatus { Green, Amber, Red, Cohort, Isolation }
     public enum JurisdictionType { WA, NSW, VIC, QLD, SA, TAS, ACT, NT }
-       
+    public enum SituationAwarenessCategory { CaseChange, TaskRisk, ResourcePressure, WorkforcePressure, GovernanceIssue, ExternalContext, RecoveryChange, EnvironmentalRisk, GeneralUpdate }
+    public enum SituationAwarenessSeverity { Information, Monitor, ActionRequired, Critical }
+    public enum SituationAwarenessStatus { New, Reviewed, Actioned, Dismissed }    
     }

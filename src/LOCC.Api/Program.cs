@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Diagnostics;
 using LOCC.Infrastructure;
 using LOCC.Infrastructure.Seed;
 using LOCC.Application.Services;
@@ -14,6 +15,7 @@ builder.Services.AddDbContext<LoccDbContext>(options =>
 
 // Application services
 builder.Services.AddScoped<RuleEngine>();
+builder.Services.AddScoped<OperationalHealthCalculator>();
 builder.Services.AddScoped<PPEConsumptionCalculator>();
 builder.Services.AddScoped<JurisdictionExportService>();
 
@@ -30,6 +32,23 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>();
+
+        Console.WriteLine(exception?.Error);
+
+        context.Response.StatusCode = 500;
+
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = exception?.Error.Message ?? "An unexpected server error occurred."
+        });
+    });
+});
+
 app.UseCors("AllowFrontend");
 
 // Seed database only on startup.
@@ -39,11 +58,34 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var db = services.GetRequiredService<LoccDbContext>();
 
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
+
     SeedData.EnsureSeedData(db);
 
-    Console.WriteLine("Database initialised and seed data checked.");
+    Console.WriteLine("Database migrated and seed data checked.");
 }
+
+app.MapGet("/api/situation-awareness", (LoccDbContext db) =>
+{
+    var items = db.SituationAwarenessItems
+        .OrderByDescending(i => i.CreatedAt)
+        .Take(10)
+        .Select(i => new SituationAwarenessItemDto
+        {
+            SituationAwarenessItemId = i.SituationAwarenessItemId,
+            Title = i.Title,
+            Summary = i.Summary,
+            Category = i.Category.ToString(),
+            Severity = i.Severity.ToString(),
+            Status = i.Status.ToString(),
+            RecommendedAction = i.RecommendedAction,
+            OperationalInterpretation = i.Interpretation,
+            CreatedAt = i.CreatedAt
+        })
+        .ToList();
+
+    return Results.Ok(items);
+});
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
@@ -72,8 +114,12 @@ app.MapGet("/api/zones", (LoccDbContext db) =>
             enhancedPrecautionsRequired = room.EnhancedPrecautionsRequired,
             terminalCleanRequired = room.TerminalCleanRequired,
             lastExposureDate = room.LastExposureDate,
-            zoningNotes = room.ZoningNotes
-        });
+            zoningNotes = room.ZoningNotes,
+            cohortStatus = room.CohortStatus,
+            cohortRationale = room.CohortRationale,
+            cohortAssignedAt = room.CohortAssignedAt
+        })
+        .ToList();
 
     return Results.Ok(zones);
 });
@@ -89,7 +135,7 @@ app.MapPatch("/api/zones/{roomId:int}", (int roomId, UpdateZoneRoomRequest reque
 
     if (!string.IsNullOrWhiteSpace(request.RiskLevel))
     {
-        if (!Enum.TryParse<LOCC.Domain.RoomRiskLevel>(request.RiskLevel, true, out var riskLevel))
+        if (!Enum.TryParse<RoomRiskLevel>(request.RiskLevel, true, out var riskLevel))
         {
             return Results.BadRequest(new { message = $"Invalid risk level: {request.RiskLevel}" });
         }
@@ -112,13 +158,24 @@ app.MapPatch("/api/zones/{roomId:int}", (int roomId, UpdateZoneRoomRequest reque
         room.HasConfirmedCase = false;
         room.HasSuspectedCase = false;
         room.IsClosed = false;
-        room.RiskLevel = LOCC.Domain.RoomRiskLevel.Low;
+        room.RiskLevel = RoomRiskLevel.Low;
         room.Notes = "Terminal clean completed. Room returned to low risk.";
     }
 
     if (!string.IsNullOrWhiteSpace(request.Notes))
     {
         room.Notes = request.Notes;
+    }
+
+    if (!string.IsNullOrWhiteSpace(request.CohortStatus))
+    {
+        room.CohortStatus = request.CohortStatus;
+        room.CohortAssignedAt = DateTime.UtcNow;
+    }
+
+    if (!string.IsNullOrWhiteSpace(request.CohortRationale))
+    {
+        room.CohortRationale = request.CohortRationale;
     }
 
     db.SaveChanges();
@@ -133,7 +190,10 @@ app.MapPatch("/api/zones/{roomId:int}", (int roomId, UpdateZoneRoomRequest reque
         room.HasConfirmedCase,
         room.HasSuspectedCase,
         room.IsClosed,
-        room.Notes
+        room.Notes,
+        room.CohortStatus,
+        room.CohortRationale,
+        room.CohortAssignedAt
     });
 });
 
@@ -146,17 +206,18 @@ app.MapGet("/api/tasks", (LoccDbContext db) =>
 {
     var tasks = db.TaskActions
         .ToList()
-            .Select(task => new TaskDto
-            {
-                TaskId = task.TaskId,
-                TaskDescription = task.TaskDescription,
-                Priority = task.Priority.ToString(),
-                Status = TaskStatusLabelService.GetDisplayLabel(task.Status),
-                OperationalArea = AIIMSLabelService.GetOperationalLabel(task.AIIMSFunction),
-                DueDateTime = task.DueDateTime,
-                GeneratedFrom = task.GeneratedFrom,
-                DecisionRationale = task.DecisionRationale
-            });
+        .Select(task => new TaskDto
+        {
+            TaskId = task.TaskId,
+            TaskDescription = task.TaskDescription,
+            Priority = task.Priority.ToString(),
+            Status = TaskStatusLabelService.GetDisplayLabel(task.Status),
+            OperationalArea = AIIMSLabelService.GetOperationalLabel(task.AIIMSFunction),
+            DueDateTime = task.DueDateTime,
+            GeneratedFrom = task.GeneratedFrom,
+            DecisionRationale = task.DecisionRationale
+        })
+        .ToList();
 
     return Results.Ok(tasks);
 });
@@ -180,13 +241,14 @@ app.MapPatch("/api/tasks/{taskId:guid}/status", (Guid taskId, UpdateTaskStatusRe
         .Replace("⚪", "")
         .Trim();
 
-    if (!Enum.TryParse<LOCC.Domain.TaskStatus>(
-        cleanedStatus,
-        true,
-        out var newStatus))
-    {
-        return Results.BadRequest(new { message = $"Invalid task status: {request.Status}" });
-    }
+if (!Enum.TryParse<LOCC.Domain.TaskStatus>(
+    cleanedStatus,
+    true,
+    out var newStatus))
+{
+    return Results.BadRequest(
+        new { message = $"Invalid task status: {request.Status}" });
+}
 
     task.Status = newStatus;
 
@@ -213,7 +275,7 @@ app.MapGet("/api/outbreak-summary", (LoccDbContext db) =>
 
     if (outbreak == null)
     {
-        return Results.NotFound();
+        return Results.NotFound(new { message = "No outbreak event found" });
     }
 
     var activeCases = db.Cases.Count(c =>
@@ -224,8 +286,7 @@ app.MapGet("/api/outbreak-summary", (LoccDbContext db) =>
         .FirstOrDefault(r => r.OutbreakId == outbreak.OutbreakId);
 
     var lowPPE = db.Resources
-        .Where(r => r.ResourceType == ResourceType.PPE && r.DaysRemaining <= 3)
-        .Count();
+        .Count(r => r.ResourceType == ResourceType.PPE && r.DaysRemaining <= 3);
 
     return Results.Ok(new
     {
@@ -260,7 +321,8 @@ app.MapGet("/api/surveillance", (LoccDbContext db) =>
             c.Deceased,
             c.PublicHealthNotificationStatus,
             c.Jurisdiction
-        });
+        })
+        .ToList();
 
     return Results.Ok(cases);
 });
@@ -327,7 +389,8 @@ app.MapGet("/api/epidemiology/summary", (LoccDbContext db) =>
             count = g.Count(),
             confirmed = g.Count(c => c.CaseStatus == "Confirmed"),
             suspected = g.Count(c => c.CaseStatus == "Suspected")
-        });
+        })
+        .ToList();
 
     var casesByZone = cases
         .Where(c => !string.IsNullOrWhiteSpace(c.Zone))
@@ -339,7 +402,8 @@ app.MapGet("/api/epidemiology/summary", (LoccDbContext db) =>
             confirmed = g.Count(c => c.CaseStatus == "Confirmed"),
             suspected = g.Count(c => c.CaseStatus == "Suspected")
         })
-        .OrderByDescending(z => z.count);
+        .OrderByDescending(z => z.count)
+        .ToList();
 
     return Results.Ok(new
     {
@@ -372,7 +436,8 @@ app.MapGet("/api/resources", (LoccDbContext db) =>
             DailyUsageRate = r.DailyUsageRate,
             MinimumSafeStockLevel = r.MinimumSafeStockLevel,
             ProjectedDaysRemaining = r.ProjectedDaysRemaining
-        });
+        })
+        .ToList();
 
     return Results.Ok(resources);
 });
@@ -396,8 +461,12 @@ app.MapGet("/api/rooms", (LoccDbContext db) =>
             room.HasConfirmedCase,
             room.HasSuspectedCase,
             room.IsClosed,
-            room.Notes
-        });
+            room.Notes,
+            room.CohortStatus,
+            room.CohortRationale,
+            room.CohortAssignedAt
+        })
+        .ToList();
 
     return Results.Ok(rooms);
 });
@@ -406,6 +475,12 @@ app.MapPost("/api/ppe/calculate",
     (PPECalculatorRequestDto request, PPEConsumptionCalculator calculator) =>
 {
     var result = calculator.Calculate(request);
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/operational-health", (OperationalHealthCalculator calculator) =>
+{
+    var result = calculator.Calculate();
     return Results.Ok(result);
 });
 

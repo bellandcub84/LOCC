@@ -125,15 +125,23 @@ function App() {
     }))
   }
 
-  const updateZone = (facilityRoomId, updates) => {
-    setZones((prevZones) =>
-      prevZones.map((zone) =>
-        zone.facilityRoomId === facilityRoomId
-          ? { ...zone, ...updates }
-          : zone
-      )
+const updateZone = (facilityRoomId, updatedRoom) => {
+  setRooms((prevRooms) =>
+    prevRooms.map((room) =>
+      room.facilityRoomId === facilityRoomId
+        ? { ...room, ...updatedRoom }
+        : room
     )
-  }
+  )
+
+  setZones((prevZones) =>
+    prevZones.map((zone) =>
+      zone.facilityRoomId === facilityRoomId
+        ? { ...zone, ...updatedRoom }
+        : zone
+    )
+  )
+}
 
   return (
 <DashboardShell>
